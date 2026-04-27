@@ -1,0 +1,10 @@
+.DS_Store
+_captures/
+*.mp4
+*.mov
+*.wav
+*.srt.tmp
+node_modules/
+__pycache__/
+.venv/
+.env
