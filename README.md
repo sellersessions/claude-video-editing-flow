@@ -1,4 +1,10 @@
-# Claude Video Editing Flow
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/logo-dark.svg">
+  <source media="(prefers-color-scheme: light)" srcset="assets/logo-light.svg">
+  <img alt="Claude Video Editing Flow" src="assets/logo-dark.svg" width="600">
+</picture>
+
+<br/>
 
 ![Stage](https://img.shields.io/badge/5-Pipeline_Stages-4A9BD9?style=for-the-badge)
 ![Target](https://img.shields.io/badge/Any_Video_→_Short_Form_Cut-6C5CE7?style=for-the-badge)
