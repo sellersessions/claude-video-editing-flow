@@ -2,6 +2,7 @@
 
 ![Stage](https://img.shields.io/badge/5-Pipeline_Stages-4A9BD9?style=for-the-badge)
 ![Target](https://img.shields.io/badge/Any_Video_→_Short_Form_Cut-6C5CE7?style=for-the-badge)
+![Render](https://img.shields.io/badge/~2_Min-Per_Cut-E74C3C?style=for-the-badge)
 ![Status](https://img.shields.io/badge/Status-Active-00B894?style=for-the-badge)
 
 **Drop any video file. Get a short-form cut with no timeline scrubbing.**
@@ -16,6 +17,21 @@ Editing long-form video by hand is slow in the wrong places. Scrubbing a 4-minut
 This workflow splits the job the way it should be split. Claude transcribes, scores and ranks every quotable segment against a written SOP. You open a markdown sheet, tick a few boxes, and Claude renders. No timeline, no DaVinci, no color-grading per segment, no audio drift between takes.
 
 **Selection is a human decision. Correction is a Claude decision.**
+
+---
+
+## Claude Video Editing Flow vs Traditional Editors
+
+| Dimension | DaVinci / Premiere | CapCut / Descript | Claude Video Editing Flow |
+|---|---|---|---|
+| **Selection unit** | Scrub a timeline | Auto-cut whole clip | Read tickable quotes in markdown |
+| **Human time per 4-min source** | 30–90 min | ~5 min for "good enough" auto-cut | ~5 min (2 min reading, 3 min Claude renders) |
+| **Editorial control** | Total | Limited to template | High — your SOP in `SELECTION-RULES.md` |
+| **Re-iteration cost** | Re-edit timeline | Regenerate, lose edits | Re-tick, render again — same source, new EDL |
+| **Per-segment grade pops** | Manual fix | Auto-grade per segment (visible drift) | Single grade across all picks (no drift) |
+| **Caption fidelity** | Manual or auto-generated | Built-in, mid-quality | Word-level ElevenLabs Scribe transcripts |
+| **Reproducibility** | Project file lives forever | Cloud-locked | EDL + transcripts in git, replay anytime |
+| **Cost per cut** | Sub + your time | Sub + caption credits | ~$0.05 ElevenLabs scribe + ffmpeg compute |
 
 ---
 
@@ -210,13 +226,27 @@ This separation keeps raw footage out of the repo's git history and lets you run
 
 ---
 
-## What This Unlocks
+## What If...
 
-**Now.** A 4-minute video becomes a 60s cut in ~5 minutes of human time (two of them reading quotes). No DaVinci. No color grading per segment. No audio drift between takes. No timeline.
+### ...I don't know what makes a good cut?
 
-**Next.** Vertical 9:16 variants for Shorts / TikTok / Reels. Per-voice or per-subject style overrides (some voices need more air before closing beats). Auto-generated cold-open B-roll from separate pack footage. Multi-cam event footage is the next real test at scale.
+`SELECTION-RULES.md` is the SOP. Tier 1 (★★★) is peak insight density. Tier 2 (★★) is bridges and context. Tier 3 (★) is filler. Tick mostly from Tier 1 — the budget logic surfaces overflows.
 
-**Future.** Team-facing — a teammate or VA can run selection passes from the same markdown sheet without editorial judgement from Claude.
+### ...the source is multi-cam?
+
+Multi-cam alignment isn't shipped yet. Today, run the pipeline per cam, pick from each, manually concat the EDLs. Multi-cam alignment is on the roadmap.
+
+### ...I need a vertical 9:16 cut?
+
+Add a `vertical` flag in `SELECTION-RULES.md` and the framing rotation switches to crop + scale per-segment. Same EDL, vertical render.
+
+### ...the audio drifts between segments?
+
+Set the source as `raw_phone` / `zoom` / `camera` in `SELECTION-RULES.md` to enable conditional `loudnorm`. Don't enable it for Riverside / Logic / Audition exports — they're already balanced.
+
+### ...I want a teammate or VA to run selections?
+
+The candidate sheet is just markdown. Anyone reading English can tick. No editing software needed. Lock `SELECTION-RULES.md` to your house style and they'll converge on your taste over time.
 
 ---
 
@@ -240,6 +270,18 @@ This separation keeps raw footage out of the repo's git history and lets you run
 | v1 | Five-stage pipeline locked. Initial validation on a 4-minute podcast source. Candidate-sheet workflow extracted. Selection rules locked. |
 | v1.1 | Generalised renderer (`render.py`). EDL-driven, format-agnostic (horizontal / vertical). |
 | v1.2 | Autonomous batch mode (`batch.py`). Folder-of-`.mp4`s → assets library with zero-interaction picks (prototype mode). |
+
+---
+
+## Repos
+
+| Repo | What |
+|---|---|
+| [`claude-video-editing-flow`](https://github.com/sellersessions/claude-video-editing-flow) | This repo — selection-led short-form cuts. |
+| [`claude-remotion-flow`](https://github.com/sellersessions/claude-remotion-flow) | Programmatic video production. Treatment-driven, beat-synced. |
+| [`claude-ui-workflow`](https://github.com/sellersessions/claude-ui-workflow) | Design intelligence pipeline — turn inspiration into production UI. |
+
+Built on top of [`ClaudeFlow-Agent`](https://github.com/sellersessions/ClaudeFlow-Agent) — the personal AI operating system that ties them together.
 
 ---
 
