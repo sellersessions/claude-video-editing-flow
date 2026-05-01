@@ -49,8 +49,8 @@ Every processed clip must produce:
 ## Dependencies
 
 - `ffmpeg` (Homebrew, 8.0.1+) -- extract + grade + concat
-- ElevenLabs Scribe API -- word-level transcripts. Key in `claude-remotion-flow/.env`
-- `video-use` skill -- transcribe + pack Python pipeline. Cloned at `/Users/dannymcmillan/Claude-Code-Projects-Restored/video-use/`. Venv at `video-use/.venv/`
+- ElevenLabs Scribe API -- word-level transcripts. Key in `.env` at this repo's root (see `.env.example`)
+- `video-use` skill -- transcribe + pack Python pipeline. Set `VIDEO_USE_DIR` env var to its checkout location (default: sibling directory `../video-use/`). Venv at `$VIDEO_USE_DIR/.venv/`
 
 ## Master log
 

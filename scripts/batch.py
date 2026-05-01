@@ -34,10 +34,12 @@ from pathlib import Path
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = SCRIPT_DIR.parent
-VIDEO_USE_TRANSCRIBE = Path(
-    "/Users/dannymcmillan/Claude-Code-Projects-Restored/video-use/helpers/transcribe.py"
-)
-PYTHON = "/opt/homebrew/opt/python@3.12/bin/python3.12"
+VIDEO_USE_DIR = Path(os.environ.get(
+    "VIDEO_USE_DIR",
+    str(PROJECT_ROOT.parent / "video-use"),
+))
+VIDEO_USE_TRANSCRIBE = VIDEO_USE_DIR / "helpers" / "transcribe.py"
+PYTHON = os.environ.get("PYTHON_BIN", "/opt/homebrew/opt/python@3.12/bin/python3.12")
 
 FILLERS = {"um", "uh", "er", "erm", "ah", "like", "you know", "sort of",
            "kind of", "basically", "literally", "right"}
@@ -265,15 +267,21 @@ def transcribe_if_missing(clip: Path, edit_dir: Path,
         return None
     print(f"  transcribing {clip.name} …")
     env = os.environ.copy()
-    # Attempt to source ELEVENLABS_API_KEY from claude-remotion-flow/.env
-    env_file = Path(
-        "/Users/dannymcmillan/Claude-Code-Projects-Restored/"
-        "claude-remotion-flow/.env"
-    )
-    if "ELEVENLABS_API_KEY" not in env and env_file.exists():
-        for line in env_file.read_text().splitlines():
-            if line.startswith("ELEVENLABS_API_KEY="):
-                env["ELEVENLABS_API_KEY"] = line.split("=", 1)[1].strip()
+    # Source ELEVENLABS_API_KEY: this repo's .env first, then sibling
+    # claude-remotion-flow/.env as a legacy fallback.
+    if "ELEVENLABS_API_KEY" not in env:
+        candidates = [
+            PROJECT_ROOT / ".env",
+            PROJECT_ROOT.parent / "claude-remotion-flow" / ".env",
+        ]
+        for env_file in candidates:
+            if not env_file.exists():
+                continue
+            for line in env_file.read_text().splitlines():
+                if line.startswith("ELEVENLABS_API_KEY="):
+                    env["ELEVENLABS_API_KEY"] = line.split("=", 1)[1].strip()
+                    break
+            if "ELEVENLABS_API_KEY" in env:
                 break
     subprocess.run(
         [PYTHON, str(VIDEO_USE_TRANSCRIBE), str(clip),

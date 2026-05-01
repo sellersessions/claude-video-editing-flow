@@ -10,8 +10,9 @@
 
 set -euo pipefail
 
-SRC="/Users/dannymcmillan/Claude-Code-Projects-Restored/pod-test-claude/pod-test-claude.mp4"
-EDIT="/Users/dannymcmillan/Claude-Code-Projects-Restored/pod-test-claude/edit"
+# Demo paths from the original pod-test-claude reference run. Override via env.
+SRC="${SRC:-../pod-test-claude/pod-test-claude.mp4}"
+EDIT="${EDIT:-../pod-test-claude/edit}"
 CLIPS="${EDIT}/clips_v2"
 OUT="${EDIT}/preview_v2.mp4"
 

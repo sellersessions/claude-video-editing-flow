@@ -25,9 +25,10 @@ Good folder names: `ssl-2026-opener`, `danny-tenerife-ep1`, `kerry-form-e-loom`.
 ## 2. Transcribe
 
 ```bash
-cd /Users/dannymcmillan/Claude-Code-Projects-Restored/video-use
+cd "${VIDEO_USE_DIR:-../video-use}"
 source .venv/bin/activate
-export ELEVENLABS_API_KEY=$(grep ELEVENLABS_API_KEY ../claude-remotion-flow/.env | cut -d= -f2)
+# ELEVENLABS_API_KEY: copy Claude-Video-Editing-Flow/.env.example to .env, fill it, then:
+[ -f ../Claude-Video-Editing-Flow/.env ] && set -a && source ../Claude-Video-Editing-Flow/.env && set +a
 python scripts/transcribe.py ../<clipname>/<clipname>.mp4 --out ../<clipname>/edit/transcripts/
 python scripts/pack_transcripts.py ../<clipname>/edit/transcripts/*.json > ../<clipname>/edit/takes_packed.md
 ```

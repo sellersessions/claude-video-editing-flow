@@ -76,7 +76,7 @@ Danny surfaced the friction: `candidates.md` required VS Code ticking (context s
 
 **ChromaDB:** Decision #1762 recorded in `decisions` collection.
 
-**Plan file:** `/Users/dannymcmillan/.claude/plans/synchronous-riding-cocoa.md`
+**Plan file:** internal plan (not in repo)
 
 ## Artefacts
 

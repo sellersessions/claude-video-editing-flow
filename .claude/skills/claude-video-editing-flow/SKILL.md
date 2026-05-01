@@ -39,13 +39,13 @@ If not already set up, create `<clipname>/edit/` alongside the raw `.mp4`:
 Use the `video-use` skill's Python pipeline:
 
 ```bash
-cd /Users/dannymcmillan/Claude-Code-Projects-Restored/video-use
+cd "${VIDEO_USE_DIR:-../video-use}"
 source .venv/bin/activate
 python scripts/transcribe.py <clip.mp4> --out <clipname>/edit/transcripts/
 python scripts/pack_transcripts.py <clipname>/edit/transcripts/*.json > <clipname>/edit/takes_packed.md
 ```
 
-The ELEVENLABS_API_KEY is in `claude-remotion-flow/.env`. Source it or export it into the shell first.
+Set `ELEVENLABS_API_KEY` in this repo's `.env` (copy `.env.example` to `.env` and fill it) or export it directly into the shell.
 
 Scribe is cached — re-running is free after the first pass.
 
@@ -222,7 +222,7 @@ After lock-in, append to `Claude-Video-Editing-Flow/sessions/<date>-<clipname>.m
 
 Per-clip flow inside `batch.py`:
 
-1. Transcribe if `<clip>/edit/transcripts/<clip>.json` missing (calls video-use `transcribe.py`; sources `ELEVENLABS_API_KEY` from `claude-remotion-flow/.env`).
+1. Transcribe if `<clip>/edit/transcripts/<clip>.json` missing (calls video-use `transcribe.py`; sources `ELEVENLABS_API_KEY` from this repo's `.env`, falling back to sibling `claude-remotion-flow/.env`).
 2. **Heuristic scoring** — groups words into silence-bounded segments (gap ≥ 0.9s), ranks by word-density minus filler count (weighted 0.6×), tiebreaks on trailing-silence length.
 3. **Greedy pick** — top-density non-overlapping segments until total ∈ `[target*(1-tol), target*(1+tol)]`.
 4. **Gate 1 auto-snap** — boundary review: start shifts off tail-word bleeds, end prefers nearest silence edge within ±1.5s.
@@ -260,8 +260,8 @@ Every processed clip produces:
 ## Dependencies
 
 - `ffmpeg` 8.0.1+ (Homebrew). `brew install homebrew-ffmpeg/ffmpeg/ffmpeg` for burned captions (optional)
-- ElevenLabs Scribe API. Key at `claude-remotion-flow/.env`
-- `video-use` skill Python venv at `/Users/dannymcmillan/Claude-Code-Projects-Restored/video-use/.venv/`
+- ElevenLabs Scribe API. Key in `.env` at this repo's root (see `.env.example`)
+- `video-use` skill Python venv at `$VIDEO_USE_DIR/.venv/` (default: `../video-use/.venv/` sibling)
 - QuickTime (macOS default)
 
 ## ChromaDB
