@@ -14,9 +14,13 @@
 **Drop any video file. Get a short-form cut with no timeline scrubbing.**
 **Claude transcribes, scores and renders. You tick the candidates.**
 
+<!-- VIDEO PLACEHOLDER -->
+> **Walkthrough video** _(coming soon: recording this week. Replace this block with the YouTube embed once shipped.)_
+<!-- /VIDEO PLACEHOLDER -->
+
 ---
 
-## Why This Exists
+## Why this exists
 
 Editing long-form video by hand is slow in the wrong places. Scrubbing a 4-minute take to find the 60 seconds worth keeping — that is the part a human should stop doing. What a human _should_ do is read a short list of quote-marked segments and tick the ones that work.
 
@@ -41,7 +45,7 @@ This workflow splits the job the way it should be split. Claude transcribes, sco
 
 ---
 
-## What It Does
+## What it does
 
 A five-stage pipeline that takes one raw `.mp4` and produces a preview cut roughly two minutes later.
 
@@ -130,7 +134,17 @@ If the generated `preview.mp4` plays, the pipeline is working.
 
 ---
 
-## Quick Start
+## How it works
+
+Three operator surfaces. Install once, then loop the second and third per clip.
+
+| Surface | What you do | Where it lives |
+|---|---|---|
+| **Install** | Clone, key, smoke test | One-off, see install above |
+| **Candidate sheet** | Read ranked quotes, tick the ones that work | `<clip>/edit/candidates.md` |
+| **Render rules** | Locked in `SELECTION-RULES.md`, no per-clip decision | Auto-applied |
+
+### Quick start
 
 Once installed:
 
@@ -232,7 +246,7 @@ This separation keeps raw footage out of the repo's git history and lets you run
 
 ---
 
-## What If...
+## What if...
 
 ### ...I don't know what makes a good cut?
 
@@ -279,15 +293,16 @@ The candidate sheet is just markdown. Anyone reading English can tick. No editin
 
 ---
 
-## Repos
+## Companion repos
 
-| Repo | What |
+This repo ships with two siblings: same author, same operating principles, different production surface.
+
+| Repo | What it does |
 |---|---|
-| [`claude-video-editing-flow`](https://github.com/sellersessions/claude-video-editing-flow) | This repo — selection-led short-form cuts. |
-| [`claude-remotion-flow`](https://github.com/sellersessions/claude-remotion-flow) | Programmatic video production. Treatment-driven, beat-synced. |
-| [`claude-ui-workflow`](https://github.com/sellersessions/claude-ui-workflow) | Design intelligence pipeline — turn inspiration into production UI. |
+| [`claude-remotion-flow`](https://github.com/sellersessions/claude-remotion-flow) | Programmatic video production. Treatment-driven, beat-synced, single-stem VO. |
+| [`claude-ui-workflow`](https://github.com/sellersessions/claude-ui-workflow) | Design intelligence pipeline. 10 stages from brand brief to production UI. |
 
-Built on top of [`ClaudeFlow-Agent`](https://github.com/sellersessions/ClaudeFlow-Agent) — the personal AI operating system that ties them together.
+All three are designed to run alongside [`ClaudeFlow-Agent`](https://github.com/sellersessions/ClaudeFlow-Agent), the personal AI operating system that ties them together.
 
 ---
 
