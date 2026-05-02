@@ -35,6 +35,11 @@ GRADES = {
         "eq=contrast=1.06:brightness=0.0:saturation=1.0,"
         "curves=master='0/0 0.25/0.23 0.75/0.77 1/1'"
     ),
+    "screen_punch": (
+        "eq=contrast=1.12:brightness=0.0:saturation=1.08,"
+        "curves=master='0/0 0.20/0.16 0.80/0.84 1/1',"
+        "unsharp=3:3:0.45:3:3:0.0"
+    ),
 }
 
 HORIZONTAL_FRAMES = [

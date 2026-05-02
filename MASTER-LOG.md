@@ -2,8 +2,8 @@
 project: claude-video-editing-flow
 status: active
 tier: 2
-last_session: 2026-04-23
-last_session_n: 5
+last_session: 2026-04-27
+last_session_n: 6
 tags: [video, editing, podcast, ffmpeg, elevenlabs, rich, terminal-first]
 ---
 
@@ -34,9 +34,11 @@ I'm working on the **Claude Video Editing Flow** project. Selection-first workfl
 - **rich ≥ 13** (14.3.2 installed) — used by picker/lockin/verdict helpers
 - `/opt/homebrew/opt/python@3.12/bin/python3.12` — canonical python for helpers
 
-**Current state (23 Apr 2026 — Session 4 accepted):**
+**Current state (27 Apr 2026 — Session 6, repo published):**
+- **GitHub:** `sellersessions/claude-video-editing-flow` (PUBLIC) — pushed S6, Alex (`AlejandroDL46`) invited. Was a subfolder of parent repo (no `.git/`); now standalone repo at this path with own `.git/`. Parent will see it as a nested-repo gitlink — wire as proper submodule later when flipping to private.
+- **README:** polished to ClaudeFlow visual standard (logo SVG pair `assets/logo-{dark,light}.svg`, 4 badges, vs-traditional comparison table, "What If..." 4MAT Q&A, Repos cross-link).
 - pod-test-claude Combo A accepted as `preview_v4.mp4` (49.19s, boundary-reviewed, landing on "It can write them.")
-- **Two new pre-render gates encoded** in SELECTION-RULES.md: Gate 1 (transcript boundary review) + Gate 2 (close check — hook + close both mandatory). Pipeline now has steps 5.5 and 5.7 between EDL and RENDER.
+- **Two pre-render gates encoded** in SELECTION-RULES.md: Gate 1 (transcript boundary review) + Gate 2 (close check — hook + close both mandatory). Pipeline now has steps 5.5 and 5.7 between EDL and RENDER.
 - **Reframe recorded:** jump cuts are INTENT, not flaw. Per-clip outputs are section assets, not finished pieces — final composition happens in Claude Remotion Flow with animations, text, overlays masking discrepancies.
 - Dorian clip (Session 3) still accepted — preview_v4.mp4 51.4s with BRIDGE + expanded STAND_OUT
 - ChromaDB decisions #1762 (Dorian) + #1773 (pre-render gates) recorded
@@ -52,11 +54,21 @@ I'm working on the **Claude Video Editing Flow** project. Selection-first workfl
 - [ ] Test single-clip flow on a third source type (Loom or phone video) to validate source-agnostic claim
 - [ ] Test on SSL 2026 event footage (9 May)
 - [ ] Optional: install libass-enabled ffmpeg for burned captions
+- [ ] **Wire `.gitmodules` entry in parent** — parent `Claude-Code-Projects` now sees `Claude-Video-Editing-Flow/` as a nested git repo (gitlink). Add `.gitmodules` entry pointing at `https://github.com/sellersessions/claude-video-editing-flow.git` so parent clones can fetch it as a proper submodule. Same wiring needed for `claude-remotion-flow`. Best done together when flipping repos to private.
+- [x] **GitHub publish + README polish** — `sellersessions/claude-video-editing-flow` PUBLIC, Alex invited, ClaudeFlow visual standard applied (Session 6, 27 Apr).
 - [x] **Batch/asset mode** — `scripts/batch.py` (Session 5, 23 Apr) — autonomous prototype mode, folder → assets library
 - [x] **Generalise render** — `scripts/render.py` (Session 5) — accepts `--edl`, `--out`, `--format`, resolves sources from EDL map
 - [x] **Vertical 9:16 variant** — `render.py --format vertical` (1080×1920) + SELECTION-RULES.md entry (Session 5)
 
 ## Session Log
+
+### 2026-04-27 19:48 BST (Session 6) — GitHub publish (PUBLIC) + README polish to ClaudeFlow standard
+
+- **Repo published as `sellersessions/claude-video-editing-flow` (PUBLIC).** Folder was a subfolder of parent `Claude-Code-Projects` with no `.git/` — initialized fresh repo in place, committed all 21 tracked files (CLAUDE.md, MASTER-LOG.md, README.md, SELECTION-RULES.md, `scripts/{batch,render,picker,lockin,verdict,render_v2.sh,requirements.txt,README.md}`, `reference/{pipeline,pipeline-flow}.md`, `sessions/2026-04-{23,25}-*.md`, `.claude/skills/claude-video-editing-flow/SKILL.md`, `.gitignore`). `gh repo create --public --source=. --push` clean. Topics: claude-code, video-editing, ffmpeg, transcription. Alex (`AlejandroDL46`) invited as collaborator (push perm).
+- **README polished to ClaudeFlow visual standard.** Added (a) **logo SVG pair** at `assets/logo-{dark,light}.svg` — two-line gradient text ("Claude Video" gradient `#4A9BD9`→`#6C5CE7` weight 700 + "Editing Flow" weight 300, subtitle "5-stage pipeline · selection-led · ~2 min per cut · no timeline"), wired via `<picture>` block at top, replaces H1; (b) 4th badge added (Render · ~2 Min Per Cut, red `E74C3C`); (c) `## Claude Video Editing Flow vs Traditional Editors` comparison table (vs DaVinci/Premiere + vs CapCut/Descript across 8 dimensions); (d) renamed `## What This Unlocks` → `## What If...` 4MAT Q&A (5 questions: don't-know-good-cut, multi-cam, vertical 9:16, audio-drift, teammate/VA); (e) `## Repos` cross-link to `claude-remotion-flow`, `claude-ui-workflow`, `ClaudeFlow-Agent`. 3 commits pushed: `0697f1b` (initial commit) → `a3cbfbe` (README text polish) → `85859fd` (logo SVG + picture wiring).
+- **Standard locked as a feedback memory (cross-project).** Danny: "Every time we make a readme page, it generates the SVGs and the layout (i.e., ClaudeFlow, Claude Remotion, Claude UI — they're all created by you)." Saved as `feedback_readme_standard.md` + indexed in parent `MEMORY.md`. Future README work: I generate SVG pair + layout + sections in one pass, never wait on a designer.
+- **Knock-on for parent repo.** Parent `Claude-Code-Projects` now sees `Claude-Video-Editing-Flow/` as a nested git repo (gitlink mode 160000) with no `.gitmodules` entry. Wire as proper submodule later (item in Next Up). Same situation as `claude-remotion-flow` (also published this session).
+- **Out of scope:** Pipeline work (no clips processed). Multi-cam alignment. Burned captions / libass install. Submodule wiring (deferred until next privacy flip).
 
 ### 2026-04-23 20:27 BST (Session 5) — autonomous batch mode + generalised render + 9:16 vertical
 
