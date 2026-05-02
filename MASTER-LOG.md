@@ -2,8 +2,8 @@
 project: claude-video-editing-flow
 status: active
 tier: 2
-last_session: 2026-04-27
-last_session_n: 6
+last_session: 2026-05-02
+last_session_n: 7
 tags: [video, editing, podcast, ffmpeg, elevenlabs, rich, terminal-first]
 ---
 
@@ -34,9 +34,10 @@ I'm working on the **Claude Video Editing Flow** project. Selection-first workfl
 - **rich ≥ 13** (14.3.2 installed) — used by picker/lockin/verdict helpers
 - `/opt/homebrew/opt/python@3.12/bin/python3.12` — canonical python for helpers
 
-**Current state (27 Apr 2026 — Session 6, repo published):**
-- **GitHub:** `sellersessions/claude-video-editing-flow` (PUBLIC) — pushed S6, Alex (`AlejandroDL46`) invited. Was a subfolder of parent repo (no `.git/`); now standalone repo at this path with own `.git/`. Parent will see it as a nested-repo gitlink — wire as proper submodule later when flipping to private.
-- **README:** polished to ClaudeFlow visual standard (logo SVG pair `assets/logo-{dark,light}.svg`, 4 badges, vs-traditional comparison table, "What If..." 4MAT Q&A, Repos cross-link).
+**Current state (2 May 2026 — Session 7, README capability sweep):**
+- **GitHub:** `sellersessions/claude-video-editing-flow` (PUBLIC) — Session 7 push at commit `9ae4233`. Alex (`AlejandroDL46`) invited. Parent still sees as nested-repo gitlink; `.gitmodules` wiring deferred until next privacy flip.
+- **README v2 (Session 7):** capability sweep. Added Terminal-first interface section, Pre-render Gates 1+2 section, Grade presets table (3 presets), Variants table (horizontal / vertical / screen-share / reaction-beat), Batch / asset mode section, EDL JSON schema block, Additional utilities table (incl. `loop_bed.py`), ChromaDB callout. Reclassified Known Gaps into Working / Working (prototype) / Not Yet. Pipeline mermaid surfaces picker + gates as nodes. Build Timeline gained v1.3. Em/en dashes scrubbed. Walkthrough video placeholder left neutral (Danny recording in a future batch).
+- **`scripts/render.py`:** added `screen_punch` grade preset (contrast 1.12 + sharper unsharp pass) for UI screencap sources, referenced in README Variants.
 - pod-test-claude Combo A accepted as `preview_v4.mp4` (49.19s, boundary-reviewed, landing on "It can write them.")
 - **Two pre-render gates encoded** in SELECTION-RULES.md: Gate 1 (transcript boundary review) + Gate 2 (close check — hook + close both mandatory). Pipeline now has steps 5.5 and 5.7 between EDL and RENDER.
 - **Reframe recorded:** jump cuts are INTENT, not flaw. Per-clip outputs are section assets, not finished pieces — final composition happens in Claude Remotion Flow with animations, text, overlays masking discrepancies.
@@ -50,17 +51,52 @@ I'm working on the **Claude Video Editing Flow** project. Selection-first workfl
 
 ## Next Up
 
+- [ ] **Record walkthrough video** — README has a `<!-- VIDEO PLACEHOLDER -->` block ready for a YouTube embed swap. Danny batching with other recordings on a separate project.
 - [ ] Test batch mode on a real folder (>2 clips) — validate heuristic scoring + auto-gates on unseen footage
 - [ ] Test single-clip flow on a third source type (Loom or phone video) to validate source-agnostic claim
 - [ ] Test on SSL 2026 event footage (9 May)
 - [ ] Optional: install libass-enabled ffmpeg for burned captions
 - [ ] **Wire `.gitmodules` entry in parent** — parent `Claude-Code-Projects` now sees `Claude-Video-Editing-Flow/` as a nested git repo (gitlink). Add `.gitmodules` entry pointing at `https://github.com/sellersessions/claude-video-editing-flow.git` so parent clones can fetch it as a proper submodule. Same wiring needed for `claude-remotion-flow`. Best done together when flipping repos to private.
+- [x] **README capability sweep** — terminal-first surfaces, gates, grade presets, variants, batch mode, EDL schema, utilities all documented; roadmap reclassified (Session 7, 2 May, commit `9ae4233`).
 - [x] **GitHub publish + README polish** — `sellersessions/claude-video-editing-flow` PUBLIC, Alex invited, ClaudeFlow visual standard applied (Session 6, 27 Apr).
 - [x] **Batch/asset mode** — `scripts/batch.py` (Session 5, 23 Apr) — autonomous prototype mode, folder → assets library
 - [x] **Generalise render** — `scripts/render.py` (Session 5) — accepts `--edl`, `--out`, `--format`, resolves sources from EDL map
 - [x] **Vertical 9:16 variant** — `render.py --format vertical` (1080×1920) + SELECTION-RULES.md entry (Session 5)
 
 ## Session Log
+
+### 2026-05-02 (Session 7) — README capability sweep + screen_punch grade preset
+
+**Trigger.** Danny asked for a feature review of the project. Audit surfaced that the README undersold what's shipped: terminal-first picker / lockin / verdict surfaces invisible, Pre-render Gates 1+2 invisible, only `neutral_punch` mentioned (3 grade presets actually shipped), screen-share + reaction-beat variants invisible, batch mode mislabelled "Not Yet" despite full implementation, vertical 9:16 mislabelled "Not Yet" despite full implementation. Danny green-lit a full README rewrite to ClaudeFlow standard.
+
+**README v2 changes (commit `9ae4233`).**
+- Added `## Terminal-first interface` section with picker / lockin / verdict table.
+- Added `## The Candidate Sheet` section (tier table + budget + mutual-exclusion).
+- Added `## Pre-render gates` section (Gate 1 boundary review + Gate 2 close check, with `pod-test-claude` v3 → v4 reference incident).
+- Added `## Grade presets` sub-section under Render Rules (3 presets: `neutral_punch`, `screen_punch`, `warm_cinematic`).
+- Added `## Variants` section (horizontal / vertical 9:16 / screen-share / reaction-beat).
+- Added `## Batch / asset mode` section, promoted out of Roadmap.
+- Added `## EDL JSON schema` block for replayability.
+- Added `## Additional utilities` table (incl. `loop_bed.py` for music-bed looping).
+- Added ChromaDB callout in File Structure.
+- Reclassified Known Gaps into 3 columns: Working / Working (prototype) / Not Yet. Vertical 9:16, batch mode, libass captions, gates, presets, terminal surfaces, screen-share, reaction-beat all moved into Working.
+- Comparison table picked up a Boundary safety row (gates vs DaVinci/CapCut).
+- Pipeline mermaid updated to surface Terminal Picker + Pre-render Gates as nodes.
+- Build Timeline gained v1.3 (terminal-first interface).
+- Walkthrough video placeholder kept neutral with HTML-comment swap instruction. Danny recording in a future batch (separate project).
+- All em/en dashes scrubbed (zero in final file).
+
+**`scripts/render.py` change (same commit).** Added `screen_punch` grade preset to the `GRADES` dict: contrast 1.12, slight saturation bump, sharper unsharp pass. Referenced from the README Variants table for UI screencap sources.
+
+**Push state.**
+- Submodule commit `9ae4233` pushed to `sellersessions/claude-video-editing-flow` (PUBLIC).
+- Parent submodule pointer bumped at `c88ecdf` (parent local, not pushed). Parent now 5 commits ahead of `origin/main` including 4 prior remotion-flow bumps.
+
+**Out of scope.**
+- Pipeline work (no clips processed).
+- `.gitmodules` wiring (still deferred to next privacy flip).
+- Walkthrough video recording (Danny batching).
+- Other repo dirty state (CLAUDE.md, AI-Workshop, ui-workflow, sellersessions-design-system, website-cloner, Claude-Loom-Workflow, extract-flow, remotion-flow, Danny-Health) untouched per Danny's instruction.
 
 ### 2026-04-27 19:48 BST (Session 6) — GitHub publish (PUBLIC) + README polish to ClaudeFlow standard
 

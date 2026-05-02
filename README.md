@@ -14,8 +14,8 @@
 **Drop any video file. Get a short-form cut with no timeline scrubbing.**
 **Claude transcribes, scores and renders. You tick the candidates.**
 
-<!-- VIDEO PLACEHOLDER -->
-> **Walkthrough video** _(coming soon: recording this week. Replace this block with the YouTube embed once shipped.)_
+<!-- VIDEO PLACEHOLDER: swap this block for the YouTube embed once recorded -->
+> **Walkthrough video coming soon.**
 <!-- /VIDEO PLACEHOLDER -->
 
 ---
