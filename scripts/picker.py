@@ -15,6 +15,12 @@ from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+try:
+    from vef import state as _vef
+except ImportError:
+    _vef = None
+
 TIER_STYLE = {3: "bold green", 2: "yellow", 1: "dim"}
 TIER_STARS = {3: "★★★", 2: "★★", 1: "★"}
 
@@ -124,7 +130,51 @@ def main() -> int:
     )
     console.print("[magenta]▸[/]")
 
+    if _vef is not None:
+        target = data.get("target_s") or 60
+        tol = (data.get("tolerance_pct") or 10) / 100
+        clip_name = data.get("clip", "")
+        if clip_name and not clip_name.endswith((".mp4", ".mov")):
+            clip_name = f"{clip_name}.mp4"
+        _vef.update(
+            stage="PICK",
+            source={
+                "name": clip_name,
+                "path": clip_name,
+                "duration_s": data.get("source_duration_s"),
+            },
+            presets=_merge_preset_target(target),
+            candidates=[
+                {
+                    "id": c["id"],
+                    "tier": c.get("tier", 1),
+                    "beat": c.get("beat", ""),
+                    "duration_s": round(float(c.get("duration_s", 0)), 2),
+                    "quote": (c.get("quote") or "").strip(),
+                    "picked": False,
+                    "source_start_s": c.get("source_start_s"),
+                    "source_end_s": c.get("source_end_s"),
+                }
+                for c in data.get("candidates", [])
+            ],
+            budget={
+                "total_s": 0,
+                "target_s": target,
+                "lower": round(target * (1 - tol), 1),
+                "upper": round(target * (1 + tol), 1),
+                "in_window": False,
+                "delta": -target,
+            },
+            ready=False,
+        )
+
     return 0
+
+
+def _merge_preset_target(target: float) -> dict:
+    cur = _vef.load().get("presets", {}) if _vef else {}
+    cur["target"] = int(target) if target == int(target) else target
+    return cur
 
 
 if __name__ == "__main__":

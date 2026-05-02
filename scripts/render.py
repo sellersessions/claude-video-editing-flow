@@ -30,6 +30,12 @@ import subprocess
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+try:
+    from vef import state as _vef
+except ImportError:
+    _vef = None
+
 GRADES = {
     "neutral_punch": (
         "eq=contrast=1.06:brightness=0.0:saturation=1.0,"
@@ -133,6 +139,11 @@ def main() -> int:
     grade_filter = GRADES[args.grade]
 
     print(f"=== render: {args.format}, {args.grade}, {len(ranges)} segments ===")
+    n = len(ranges)
+    if _vef is not None:
+        _vef.update(stage="RENDER",
+                    render={"progress": 0.0, "current_stage": "extract",
+                            "stages_done": []})
     segments: list[Path] = []
     for i, r in enumerate(ranges):
         if args.src:
@@ -157,7 +168,19 @@ def main() -> int:
               f"({duration:.2f}s)  frame[{i % len(frames)}]")
         render_segment(src, seg_path, start, duration, frame, grade_filter)
         segments.append(seg_path)
+        if _vef is not None:
+            extract_done = (i + 1) / max(n, 1)
+            _vef.merge(render={
+                "progress": extract_done * 0.7,  # extract = 70% of total
+                "current_stage": "extract" if i + 1 < n else "concat",
+            })
 
+    if _vef is not None:
+        _vef.merge(render={
+            "current_stage": "concat",
+            "stages_done": ["extract"],
+            "progress": 0.85,
+        })
     print(f"=== concat → {args.out.name} ===")
     concat(segments, args.out)
 
@@ -170,6 +193,18 @@ def main() -> int:
     print(f"  output:   {args.out}")
     print(f"  duration: {dur:.2f}s")
     print(f"  size:     {size_mb:.1f} MB")
+    if _vef is not None:
+        _vef.merge(render={
+            "progress": 1.0,
+            "current_stage": "done",
+            "stages_done": ["extract", "concat", "srt"],
+            "output": {
+                "name": args.out.name,
+                "path": str(args.out),
+                "duration_s": round(dur, 2),
+                "size_mb": round(size_mb, 1),
+            },
+        })
     return 0
 
 

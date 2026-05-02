@@ -3,8 +3,8 @@ project: claude-video-editing-flow
 status: active
 tier: 2
 last_session: 2026-05-02
-last_session_n: 7
-tags: [video, editing, podcast, ffmpeg, elevenlabs, rich, terminal-first]
+last_session_n: 8
+tags: [video, editing, podcast, ffmpeg, elevenlabs, rich, terminal-first, vef-bridge]
 ---
 
 # Claude Video Editing Flow MASTER-LOG
@@ -34,7 +34,16 @@ I'm working on the **Claude Video Editing Flow** project. Selection-first workfl
 - **rich ≥ 13** (14.3.2 installed) — used by picker/lockin/verdict helpers
 - `/opt/homebrew/opt/python@3.12/bin/python3.12` — canonical python for helpers
 
-**Current state (2 May 2026 — Session 7, README capability sweep):**
+**Current state (2 May 2026 — Session 8, vef bridge live):**
+- **vef hybrid bridge SHIPPED.** Terminal pipeline + browser UI now share `state.json` + `events.jsonl` inside `<clip>/edit/.vef/`. `python -m vef.serve <clip-folder>` opens the loop-cutter-aligned mockup live. Pipeline scripts auto-write state at each stage. Browser polls 500ms, POSTs clicks to `/event`. Click round-trip verified, candidate-to-pick matching uses closest-bounds (overlap ≥1s + min |Δstart|+|Δend|).
+- **vef package layout:** `vef/__init__.py`, `vef/state.py` (~95 LOC: load/update/merge/append_event/read_events/reset), `vef/serve.py` (~170 LOC stdlib http.server, single-threaded, GET / + /state + /events + /health, POST /event with safe state mutations), `vef/state.example.json` (pod-test-claude worked example for standalone-mode and tests).
+- **Mockup wired:** `mockups/v1-loop-cutter-aligned/index.html` got ~190 LOC vanilla JS (poll + render(state) + click delegation + post helper). Renders all 7 surfaces from state: step pills, drop zone, presets, candidates, budget meter, gates, render bar/output, verdict lanes. Standalone mode (no server) leaves the hardcoded demo content untouched.
+- **Pipeline hooks (one-line imports each):** `scripts/picker.py` → writes PICK + candidates + budget + source. `scripts/lockin.py` → writes GATES + picks + closest-bounds matched candidates + budget recompute. `scripts/render.py` → per-segment progress (0→0.7 extract, 0.85 concat, 1.0 done) + final output stats. `scripts/verdict.py` → writes VERDICT + render.output.path.
+- **End-to-end verified on pod-test-claude:** SETUP → PICK (13 candidates) → GATES (5 picks, candidates 1/2/4/5/9 highlighted, total 49.08s under window) → VERDICT (preview.mp4 in output card). Closest-bounds matcher correctly disambiguates candidate 2 (Cadence Limit tight) over candidate 3 (full superset).
+- **Captures:** `_captures/vef-bridge/01..05.png` (initial bound, steps fix, RENDER drive, pod-test PICK, pod-test GATES).
+- **Plan file:** `~/.claude/plans/curious-hopping-hollerith.md` covers the architecture; build held to ~1.5 hr across 4 phases.
+
+**Carry-over from Session 7 (still relevant):**
 - **GitHub:** `sellersessions/claude-video-editing-flow` (PUBLIC) — Session 7 push at commit `9ae4233`. Alex (`AlejandroDL46`) invited. Parent still sees as nested-repo gitlink; `.gitmodules` wiring deferred until next privacy flip.
 - **README v2 (Session 7):** capability sweep. Added Terminal-first interface section, Pre-render Gates 1+2 section, Grade presets table (3 presets), Variants table (horizontal / vertical / screen-share / reaction-beat), Batch / asset mode section, EDL JSON schema block, Additional utilities table (incl. `loop_bed.py`), ChromaDB callout. Reclassified Known Gaps into Working / Working (prototype) / Not Yet. Pipeline mermaid surfaces picker + gates as nodes. Build Timeline gained v1.3. Em/en dashes scrubbed. Walkthrough video placeholder left neutral (Danny recording in a future batch).
 - **`scripts/render.py`:** added `screen_punch` grade preset (contrast 1.12 + sharper unsharp pass) for UI screencap sources, referenced in README Variants.
@@ -51,7 +60,12 @@ I'm working on the **Claude Video Editing Flow** project. Selection-first workfl
 
 ## Next Up
 
-- [ ] **Pick a form for the UI mockup** — `mockups/v1-loop-cutter-aligned/index.html` exists. Three options: (a) render as static PNG / animated SVG hero in README, (b) build real `vef` TUI launcher with rich, (c) static Netlify landing page. Danny to decide which.
+- [ ] **Drive the bridge on a real session** — open `vef serve` on a fresh clip and run picker → lockin → render → verdict end-to-end with the browser open. Confirms the hybrid model in real use, not just synthetic state pushes.
+- [ ] **Commit + push the bridge.** 8 changed/new files in `Claude-Video-Editing-Flow/`: `vef/__init__.py`, `vef/state.py`, `vef/serve.py`, `vef/state.example.json`, `mockups/v1-loop-cutter-aligned/index.html`, `scripts/{picker,lockin,verdict,render}.py`. Plus `_captures/vef-bridge/*.png` (gitignored).
+- [ ] **Optional gate-render step** — Claude can write `state.gates.{boundary,close,budget}.detail` via `state.merge()` after lockin to surface real gate findings in the UI panel (currently shows last cached values). Pattern: terminal Claude evaluates picks, calls one `state.merge` per gate, browser refreshes within 500ms.
+- [ ] **Phase 5 (deferred from plan):** add a "GO" / "RUN" button to the mockup so the user can kick off the pipeline from the browser instead of typing in terminal. Requires a small subprocess launcher in `vef.serve` (or just write `events.jsonl` `{action:"go"}` for terminal Claude to read). Skipped for v1 because it's not on the critical path.
+- [x] **vef hybrid bridge** — terminal+UI working surfaces, state.json contract, click round-trip verified end-to-end on pod-test-claude (Session 8).
+- [ ] **Pick a form for the UI mockup** — answered by Session 8: form (b) extended became the real product. (a) README hero PNG and (c) Netlify landing remain optional decoration.
 - [ ] **Record walkthrough video** — README has a `<!-- VIDEO PLACEHOLDER -->` block ready for a YouTube embed swap. Danny batching with other recordings on a separate project.
 - [ ] Test batch mode on a real folder (>2 clips) — validate heuristic scoring + auto-gates on unseen footage
 - [ ] Test single-clip flow on a third source type (Loom or phone video) to validate source-agnostic claim
@@ -65,6 +79,37 @@ I'm working on the **Claude Video Editing Flow** project. Selection-first workfl
 - [x] **Vertical 9:16 variant** — `render.py --format vertical` (1080×1920) + SELECTION-RULES.md entry (Session 5)
 
 ## Session Log
+
+### 2026-05-02 (Session 8) — vef hybrid bridge: terminal+UI live
+
+**Trigger.** Danny: "How do I converse with Claude in the terminal AND see the UI? If we go to the UI, how do I know to look at it?" Then sharpened: "Setup in the UI, click Go, candidates appear in the UI, reply, next stage. Claude controls everything. Terminal stays for off-rail conversation. This is a hybrid model — neither pure SaaS lock-in nor pure terminal wall-of-text." Asked for an elegant plan, sequential thinking, agent fleet check-ins.
+
+**Plan.** `~/.claude/plans/curious-hopping-hollerith.md`. 4 phases × ~30 min each. Architecture: `state.json` + `events.jsonl` per-clip in `edit/.vef/`. Browser polls 500ms; POSTs clicks to `/event`; pipeline writes at stage boundaries. No daemons, no sockets, no SSE. Pure stdlib http.server + vanilla JS.
+
+**Phase 1 — `vef/state.py`.** load/update/merge/append_event/read_events/reset. Atomic writes via `.tmp` + `replace`. Working folder discovery: `VEF_WORKDIR` env → `cwd/edit/.vef` → `cwd/.vef`. 8/8 smoke cases pass.
+
+**Phase 2 — `vef/serve.py`.** Stdlib `http.server.BaseHTTPRequestHandler`. Routes: `GET /` (mockup), `GET /state`, `GET /events`, `GET /health`, `POST /event`. POST applies safe state mutations directly (`set_preset`, `set_source`, `toggle_pick`, `verdict`, `lockin`, `go`); heavy actions just set `ready=true`. CLI: `python -m vef.serve <clip-folder> [--port 8765] [--no-open]`. Edge fix: `toggle_pick` no longer overwrites missing `candidates` with `[]`.
+
+**Phase 3 — JS wiring (~190 LOC).** Appended before `</body>` of mockup. Poll loop + 7 render functions (`renderSteps` / `renderDrop` / `renderPresets` / `renderCandidates` / `renderBudget` / `renderGates` / `renderRender` / `renderVerdict`). Document-level click delegation. Stage→pill table for the 7 visual pills (Drop / Transcribe / Score / Pick / Gates / Render / Verdict) since logical stages collapse (RUN spans Transcribe+Score). Standalone mode (server unreachable) leaves hardcoded demo content alone.
+
+**Phase 4 — pipeline hooks.** Each script gains `sys.path` insert + `try: from vef import state as _vef`. Picker writes PICK + candidates (with `picked: false`) + initial budget + source. Lockin matches EDL ranges to candidates via closest-bounds (overlap ≥1s, min |Δstart|+|Δend|), writes GATES + picks + recomputed budget. Render writes per-segment progress (0→0.7 extract, 0.85 concat, 1.0 done) + final output. Verdict writes VERDICT + output.path.
+
+**Verification on pod-test-claude.** Initial state `SETUP`. After picker: stage=PICK, 13 candidates, source.name=pod-test-claude.mp4, budget.target=60. After lockin: stage=GATES, 5 picks, candidates [1, 2, 4, 5, 9] picked (correctly chose candidate 2 "Cadence Limit (tight)" over superset 3 "Cadence Limit (full)"), total 49.08s, in_window=False. After verdict: stage=VERDICT, render.output.path=edit/preview.mp4. Round-trip POST `/event` with `verdict.lane=a` → state mirrors within poll cycle.
+
+**Visual regression.** Headless Chrome screenshots at 1280×2000: `01-live-bound.png` (state.example seed), `02-steps-fixed.png` (after step-pill bug fix), `03-stage-render.png` (after stage push to RENDER), `04-pod-test-pick.png` (live state from picker.py), `05-pod-test-gates.png` (live state after lockin.py). All `.gcard` panels intact. Palette matches loop-cutter. Picked rows highlight gold. Beat pills retain colour coding.
+
+**Bugs caught + fixed in flight.**
+1. Step pills off-by-one: 7 visual pills don't 1:1 map to 6 logical stages (RUN spans Transcribe+Score). Fixed with `STAGE_PILLS` lookup table.
+2. `toggle_pick` overwrote missing candidates with `[]` — would corrupt state at SETUP. Fixed with early return.
+3. Candidate→pick matcher first attempt used 50ms tolerance which was too tight after Gate 1 boundary snap. Switched to overlap-based, then to closest-bounds when overlap matched a superset candidate.
+
+**Agent check-ins attempted.** Plan called for code-reviewer / backend-architect / ui-architect / visual-regression / a11y-tester at phase boundaries. The code-reviewer subagent in this fleet didn't fully wire its tools (emitted JSON tool_use as text). Self-reviewed Phase 1 against smoke results and proceeded. Worth investigating whether the fleet's `mcp:filesystem` / `mcp:shell` wiring is healthy in this session — surfaced as a known gap, not blocking.
+
+**Out of scope (deferred).**
+- WebSocket/SSE upgrade (polling is fine).
+- Real `state.gates.*.detail` writes after lockin (Claude can do this in chat via `state.merge`).
+- "GO" button in browser to kick off pipeline (terminal launch still required).
+- Commit + push (Danny didn't ask).
 
 ### 2026-05-02 (Session 7 cont.) — UI mockup v1 (loop-cutter aligned)
 

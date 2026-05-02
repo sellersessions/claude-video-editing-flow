@@ -650,9 +650,319 @@ tr.picked .checkbox::after { content: '✓'; font-weight: 800; }
   </div>
 
   <p class="footer-hint">
-    Mockup only. Live equivalent runs as <code>scripts/picker.py</code>, <code>scripts/lockin.py</code>, <code>scripts/verdict.py</code> in the terminal today.
+    Live mode: <code>python -m vef.serve &lt;clip-folder&gt;</code> drives this surface from <code>state.json</code>. Standalone mode: this page renders its built-in pod-test-claude example.
   </p>
 
 </main>
+
+<script>
+/* ------------------------------------------------------------------
+   vef bridge — polls /state, renders into existing markup, POSTs clicks
+   ------------------------------------------------------------------ */
+(function () {
+  const POLL_MS = 500;
+  const STAGES = ['SETUP','RUN','PICK','GATES','RENDER','VERDICT','DONE'];
+  let lastSerialized = '';
+  let serverUp = true;
+
+  async function poll() {
+    try {
+      const res = await fetch('/state', { cache: 'no-store' });
+      if (!res.ok) return;
+      const text = await res.text();
+      if (!serverUp) { serverUp = true; }
+      if (text === lastSerialized) return;
+      lastSerialized = text;
+      const s = JSON.parse(text || '{}');
+      render(s);
+    } catch (e) {
+      // standalone mode (no server) — leave hardcoded demo content alone
+      if (serverUp && lastSerialized) { /* server went away mid-session */ }
+      serverUp = false;
+    }
+  }
+
+  async function post(action, payload) {
+    if (!serverUp) return;
+    try {
+      await fetch('/event', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, payload: payload || {} }),
+      });
+      poll();
+    } catch (e) { /* silent */ }
+  }
+  window.__vef = { post, poll };
+
+  /* render -------------------------------------------------------- */
+  function render(s) {
+    if (!s || Object.keys(s).length === 0) return;
+    renderSteps(s);
+    renderDrop(s);
+    renderPresets(s);
+    renderCandidates(s);
+    renderBudget(s);
+    renderGates(s);
+    renderRender(s);
+    renderVerdict(s);
+  }
+
+  // Logical stages collapse into 7 visual pills:
+  //   0 Drop · 1 Transcribe · 2 Score · 3 Pick · 4 Gates · 5 Render · 6 Verdict
+  const STAGE_PILLS = {
+    SETUP:   { done: 0, current: 0 },
+    RUN:     { done: 1, current: 1 },  // RUN spans Transcribe+Score
+    PICK:    { done: 3, current: 3 },
+    GATES:   { done: 4, current: 4 },
+    RENDER:  { done: 5, current: 5 },
+    VERDICT: { done: 6, current: 6 },
+    DONE:    { done: 7, current: -1 },
+  };
+  function renderSteps(s) {
+    const stage = s.stage || 'SETUP';
+    const map = STAGE_PILLS[stage] || STAGE_PILLS.SETUP;
+    const stepEls = document.querySelectorAll('.step-progress .step');
+    stepEls.forEach((el, i) => {
+      el.classList.remove('done', 'current');
+      if (i < map.done) el.classList.add('done');
+      else if (i === map.current) el.classList.add('current');
+    });
+  }
+
+  function renderDrop(s) {
+    const h4 = document.querySelector('.drop-zone h4');
+    const p = document.querySelector('.drop-zone p');
+    if (s.source && s.source.name) {
+      if (h4) h4.textContent = s.source.name;
+      if (p) p.textContent = (s.source.duration_s
+        ? `loaded · ${fmtTime(s.source.duration_s)}`
+        : 'loaded');
+    } else {
+      if (h4) h4.textContent = 'Drop a video here';
+      if (p) p.textContent = 'or paste a path. Anything with speech: podcast, Loom, Zoom, phone, screen-rec.';
+    }
+    const wrap = document.querySelector('.drop-recents');
+    if (wrap && Array.isArray(s.recents)) {
+      wrap.innerHTML = s.recents.map(name =>
+        `<span class="chip" data-path="${escapeHtml(name)}">↻ ${escapeHtml(name)}</span>`
+      ).join('');
+    }
+  }
+
+  function renderPresets(s) {
+    if (!s.presets) return;
+    setSegActive('Format', s.presets.format);
+    setSegActive('Target', s.presets.target != null ? s.presets.target + 's' : null);
+    setSegActive('Grade', s.presets.grade);
+    setSegActive('Mode',
+      s.presets.mode === 'batch' ? 'Batch (folder)' :
+      s.presets.mode === 'single' ? 'Single clip' : s.presets.mode);
+  }
+
+  function setSegActive(labelText, value) {
+    if (value == null) return;
+    const rows = document.querySelectorAll('.preset-row');
+    for (const row of rows) {
+      const lbl = row.querySelector('.label');
+      if (!lbl || lbl.textContent.trim() !== labelText) continue;
+      const buttons = row.querySelectorAll('.seg button');
+      buttons.forEach(b => {
+        const match = b.textContent.trim() === String(value).trim();
+        b.classList.toggle('active', match);
+      });
+      return;
+    }
+  }
+
+  function fmtTime(sec) {
+    const m = Math.floor(sec / 60), s = Math.floor(sec % 60);
+    return `${m}:${String(s).padStart(2, '0')}`;
+  }
+  function escapeHtml(t) {
+    return String(t).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  /* candidates ---------------------------------------------------- */
+  function renderCandidates(s) {
+    if (!Array.isArray(s.candidates)) return;
+    const tbody = document.querySelector('.cand-table tbody');
+    if (!tbody) return;
+    tbody.innerHTML = s.candidates.map(c => {
+      const tier = Math.max(1, Math.min(3, c.tier || 1));
+      const stars = '★'.repeat(tier);
+      const dur = (c.duration_s != null) ? c.duration_s.toFixed(1) + 's' : '';
+      const beat = c.beat || '';
+      const quote = escapeHtml(c.quote || '');
+      const picked = c.picked ? 'picked' : '';
+      return `
+        <tr class="${picked}" data-id="${c.id}">
+          <td class="col-num">${c.id}</td>
+          <td class="col-pick"><span class="checkbox"></span></td>
+          <td><span class="tier t${tier}">${stars}</span></td>
+          <td><span class="beat-pill" data-beat="${escapeHtml(beat)}">${escapeHtml(beat)}</span></td>
+          <td class="col-dur">${dur}</td>
+          <td class="col-quote">"${quote}"</td>
+        </tr>`;
+    }).join('');
+    const meta = document.querySelector('.gcard:has(.cand-table) .gcard-meta');
+    if (meta) {
+      const total = s.candidates.length;
+      const surfaced = Math.min(total, 6);
+      const src = (s.source && s.source.name) || '—';
+      meta.textContent = `${total} scored · top ${surfaced} surfaced · ${src}`;
+    }
+  }
+
+  /* budget meter -------------------------------------------------- */
+  function renderBudget(s) {
+    if (!s.budget) return;
+    const b = s.budget;
+    const stats = document.querySelectorAll('.budget .budget-stat');
+    if (stats.length >= 1 && b.total_s != null) {
+      stats[0].textContent = b.total_s.toFixed(1) + 's';
+    }
+    if (stats.length >= 2 && b.target_s != null) {
+      const status = b.in_window ? 'ok' : (b.delta < 0 ? 'warn' : 'warn');
+      const word = b.in_window ? 'IN WINDOW' : (b.delta < 0 ? 'UNDER' : 'OVER');
+      const tip = (b.delta != null && !b.in_window)
+        ? ` · target ${b.lower}-${b.upper}s · ${b.delta > 0 ? 'drop' : 'add'} needed`
+        : ` · target ${b.lower}-${b.upper}s`;
+      stats[1].innerHTML = `<span class="${status}">${word}</span>${escapeHtml(tip)}`;
+    }
+    const fill = document.querySelector('.budget-meter .fill');
+    const window = document.querySelector('.budget-meter .window');
+    if (fill && b.target_s) {
+      const pct = Math.min(120, (b.total_s / (b.upper || b.target_s)) * 100);
+      fill.style.width = pct + '%';
+    }
+    if (window && b.target_s && b.lower != null && b.upper != null) {
+      const span = b.upper * 1.2;  // visual scale roughly aligned to fill
+      const left = (b.lower / span) * 100;
+      const right = 100 - (b.upper / span) * 100;
+      window.style.left = left + '%';
+      window.style.right = right + '%';
+    }
+  }
+
+  /* gates --------------------------------------------------------- */
+  function renderGates(s) {
+    if (!s.gates) return;
+    const order = ['boundary', 'close', 'budget'];
+    const rows = document.querySelectorAll('.gate-row');
+    order.forEach((key, i) => {
+      const row = rows[i];
+      const g = s.gates[key];
+      if (!row || !g) return;
+      row.classList.remove('pass', 'warn', 'fail');
+      row.classList.add(g.status || 'pass');
+      const icon = row.querySelector('.gate-icon');
+      if (icon) icon.textContent = (g.status === 'pass') ? '✓'
+                                : (g.status === 'warn') ? '!'
+                                : '✗';
+      const name = row.querySelector('.gate-name');
+      if (name && g.name) name.textContent = g.name;
+      const detail = row.querySelector('.gate-detail');
+      if (detail) detail.innerHTML = escapeHtml(g.detail || '');
+      const side = row.querySelector('.gate-side');
+      if (side && g.side) side.textContent = g.side;
+    });
+  }
+
+  /* render progress + output ------------------------------------- */
+  function renderRender(s) {
+    if (!s.render) return;
+    const r = s.render;
+    if (r.progress != null) {
+      const fill = document.querySelector('.render-progress .fill');
+      if (fill) fill.style.width = (r.progress * 100).toFixed(0) + '%';
+      const stages = document.querySelector('.render-stages');
+      if (stages) {
+        const last = stages.children[stages.children.length - 1];
+        if (last) last.textContent = (r.progress * 100).toFixed(0) + '%';
+      }
+    }
+    if (Array.isArray(r.stages_done) || r.current_stage) {
+      const stageEls = document.querySelectorAll('.render-stages .stage');
+      stageEls.forEach(el => {
+        el.classList.remove('done', 'current');
+        const name = el.textContent.trim().split(' ')[0].toLowerCase();
+        if (Array.isArray(r.stages_done) && r.stages_done.includes(name)) {
+          el.classList.add('done');
+        }
+        if (r.current_stage && name === r.current_stage.toLowerCase()) {
+          el.classList.add('current');
+        }
+      });
+    }
+    if (r.output) {
+      const fname = document.querySelector('.render-output .file-name');
+      if (fname && r.output.name) fname.textContent = r.output.name;
+      const stats = document.querySelector('.render-output .file-stats');
+      if (stats) {
+        const dur = r.output.duration_s != null ? r.output.duration_s.toFixed(1) + 's' : '';
+        const size = r.output.size_mb != null ? r.output.size_mb.toFixed(1) + ' MB' : '';
+        stats.textContent = [dur, size, 'opens in QuickTime'].filter(Boolean).join(' · ');
+      }
+    }
+  }
+
+  /* verdict ------------------------------------------------------- */
+  function renderVerdict(s) {
+    const lanes = document.querySelectorAll('.verdict-btn');
+    lanes.forEach(b => {
+      b.classList.toggle('selected', s.verdict === b.getAttribute('data-lane'));
+    });
+  }
+
+  /* click delegation ---------------------------------------------- */
+  document.addEventListener('click', (e) => {
+    if (!serverUp) return;  // standalone: clicks are no-ops
+
+    // recent chip → set_source
+    const chip = e.target.closest('.drop-recents .chip');
+    if (chip) {
+      const path = chip.getAttribute('data-path') || chip.textContent.replace(/^[↻\s]+/, '');
+      return post('set_source', { path });
+    }
+    // preset segment button
+    const segBtn = e.target.closest('.seg button');
+    if (segBtn) {
+      const row = segBtn.closest('.preset-row');
+      const label = row && row.querySelector('.label');
+      if (!label) return;
+      const key = label.textContent.trim().toLowerCase();
+      let value = segBtn.textContent.trim();
+      // normalise
+      if (key === 'target') value = value.replace(/s$/, '');
+      if (key === 'mode') value = value.toLowerCase().includes('batch') ? 'batch' : 'single';
+      return post('set_preset', { key, value });
+    }
+    // candidate row click → toggle_pick
+    const row = e.target.closest('.cand-table tbody tr');
+    if (row) {
+      const id = parseInt(row.getAttribute('data-id'), 10);
+      if (!isNaN(id)) return post('toggle_pick', { id });
+    }
+    // verdict lane click
+    const lane = e.target.closest('.verdict-btn');
+    if (lane) {
+      const v = lane.getAttribute('data-lane');
+      if (v) return post('verdict', { lane: v });
+    }
+    // lock-in button (gold) inside .reply-bar
+    if (e.target.closest('.reply-bar button')) {
+      const input = document.querySelector('.reply-input');
+      const reply = input ? input.value : '';
+      return post('lockin', { reply });
+    }
+  });
+
+  /* boot ---------------------------------------------------------- */
+  setInterval(poll, POLL_MS);
+  poll();
+})();
+</script>
+
 </body>
 </html>

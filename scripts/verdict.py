@@ -6,10 +6,17 @@ Usage: python3 verdict.py [preview-path]
 from __future__ import annotations
 
 import sys
+from pathlib import Path
 
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+try:
+    from vef import state as _vef
+except ImportError:
+    _vef = None
 
 LANES = [
     ("a", "green",  "ACCEPT",   "ship it",                    "write learnings → session close → SHIP"),
@@ -26,6 +33,17 @@ def main() -> int:
     subtitle = f"[dim]{preview}[/]" if preview else "[dim]preview watched — what next?[/]"
     console.print(Panel(subtitle, title="[bold cyan]STEP 9 · Verdict[/]",
                         title_align="left", border_style="cyan", expand=False))
+
+    if _vef is not None:
+        update: dict = {"stage": "VERDICT", "verdict": None, "ready": False}
+        if preview:
+            update["render"] = (_vef.load().get("render") or {})
+            update["render"]["output"] = {
+                **(update["render"].get("output") or {}),
+                "path": preview,
+                "name": Path(preview).name,
+            }
+        _vef.update(**update)
 
     table = Table(show_header=True, header_style="bold white",
                   border_style="dim", expand=False)
