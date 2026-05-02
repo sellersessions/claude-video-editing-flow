@@ -51,6 +51,7 @@ I'm working on the **Claude Video Editing Flow** project. Selection-first workfl
 
 ## Next Up
 
+- [ ] **Pick a form for the UI mockup** — `mockups/v1-loop-cutter-aligned/index.html` exists. Three options: (a) render as static PNG / animated SVG hero in README, (b) build real `vef` TUI launcher with rich, (c) static Netlify landing page. Danny to decide which.
 - [ ] **Record walkthrough video** — README has a `<!-- VIDEO PLACEHOLDER -->` block ready for a YouTube embed swap. Danny batching with other recordings on a separate project.
 - [ ] Test batch mode on a real folder (>2 clips) — validate heuristic scoring + auto-gates on unseen footage
 - [ ] Test single-clip flow on a third source type (Loom or phone video) to validate source-agnostic claim
@@ -64,6 +65,33 @@ I'm working on the **Claude Video Editing Flow** project. Selection-first workfl
 - [x] **Vertical 9:16 variant** — `render.py --format vertical` (1080×1920) + SELECTION-RULES.md entry (Session 5)
 
 ## Session Log
+
+### 2026-05-02 (Session 7 cont.) — UI mockup v1 (loop-cutter aligned)
+
+**Trigger.** Danny: "Faceless GitHub repo, walkthrough video pending. If we had a simple UI, what would it look like?" Asked for ASCII wireframe first, then HTML mockup matching the loop-cutter / auditioner design system to steer where this could go (README hero, TUI launcher, web landing page).
+
+**ASCII wireframe.** 5-pane layout: Drop, Presets, Candidates, Pre-render Gates, Render+Verdict. Walked through with pod-test-claude as worked example. Posted in chat.
+
+**HTML mockup at `mockups/v1-loop-cutter-aligned/`.**
+- `index.html` — self-contained, ~660 lines, Google Fonts only external dep
+- `preview-full.png` — 1280×~1900 screenshot
+- `README.md` — design-system source citation, layout legend, three-forms table
+- Tokens copied from `claude-remotion-flow/tools/loop-cutter/styles.css`: full SS palette (`--ss-deep`, `--ss-purple-light`, `--ss-gold`, `--ss-emerald/cyan/pink/orange`), Plus Jakarta Sans + JetBrains Mono, `.gcard` panel primitive, step-progress pills, `.seg` segmented controls, `.drop-zone` with hover glow.
+- Beat pills colour-coded per beat (HOOK cyan, INSIGHT purple, DECISION pink, CLOSE emerald, BRIDGE slate, CONTEXT orange).
+- Picked rows highlighted gold (`--ss-gold` 8% bg, gold checkbox), unpicked rows hover purple-dim.
+- Verdict lanes match `verdict.py` 4-lane convention (a accept emerald, b re-frame cyan, c re-flow gold, d re-pick orange).
+- Step progress at top: 3 done (Drop / Transcribe / Score), 1 current (Pick), 3 future (Gates / Render / Verdict).
+- Budget meter with target window dashed lines, "UNDER · suggest add #2" warn state.
+- pod-test-claude baked in as the worked example: 17 scored, 4 picked, 38.8s under 54-66s, Gate 1 fixed `voices,` bleed at 13.58→14.16, Gate 2 lands on "It can write them.", render 72%.
+
+**Verify-before-done.** Headless Chrome screenshot at 1280×1800 captured to mockup folder. All 5 `.gcard` panels rendered. Visual regression pass — palette matches loop-cutter, typography matches, components match.
+
+**Three-forms decision parked for next session:**
+1. README hero image (cheap, swap into walkthrough video placeholder)
+2. Real TUI launcher (`vef` command via rich, terminal-first principle aligned)
+3. Web landing page (Netlify, faceless GitHub gets a face)
+
+Danny to pick which form to build next.
 
 ### 2026-05-02 (Session 7) — README capability sweep + screen_punch grade preset
 
