@@ -3,7 +3,7 @@ project: claude-video-editing-flow
 status: active
 tier: 2
 last_session: 2026-05-03
-last_session_n: 9
+last_session_n: 10
 tags: [video, editing, podcast, ffmpeg, elevenlabs, rich, terminal-first, vef-bridge]
 ---
 
@@ -71,7 +71,7 @@ I'm working on the **Claude Video Editing Flow** project. Selection-first workfl
 - [x] **Drive bridge end-to-end (validation paused at PICK)** — dorian-listings-tips run got to PICK then Danny recorded a 9:01 Loom flagging 11 UX gaps. Transcript at `_captures/loom-feedback/0f091427558d4a5e9c3cd3c93f3aebff-*.txt`. Plan addendum (Phases 5-8) appended to `~/.claude/plans/curious-hopping-hollerith.md`. Session 9.
 - [x] **vef hybrid bridge** — terminal+UI working surfaces, state.json contract, click round-trip verified end-to-end on pod-test-claude (Session 8).
 - [ ] **Pick a form for the UI mockup** — answered by Session 8: form (b) extended became the real product. (a) README hero PNG and (c) Netlify landing remain optional decoration.
-- [ ] **Record walkthrough video** — README has a `<!-- VIDEO PLACEHOLDER -->` block ready for a YouTube embed swap. Danny batching with other recordings on a separate project.
+- [x] **Record walkthrough video** — Session 10 (3 May): 65s explainer authored in Claude-Remotion-Flow (ClaudeVideoEditingFlowExplainer), Pass 2 Loom fixes applied, MP4 attached to `v0.1-demo` release, README inline embed live (commit `ee2e5f1`).
 - [ ] Test batch mode on a real folder (>2 clips) — validate heuristic scoring + auto-gates on unseen footage
 - [ ] Test single-clip flow on a third source type (Loom or phone video) to validate source-agnostic claim
 - [ ] Test on SSL 2026 event footage (9 May)
@@ -84,6 +84,17 @@ I'm working on the **Claude Video Editing Flow** project. Selection-first workfl
 - [x] **Vertical 9:16 variant** — `render.py --format vertical` (1080×1920) + SELECTION-RULES.md entry (Session 5)
 
 ## Session Log
+
+### 2026-05-03 (Session 10) — walkthrough video shipped (v0.1-demo)
+
+**Trigger.** Pass 2 of `ClaudeVideoEditingFlowExplainer` (authored in `claude-remotion-flow`) ready post-compact: 7 Loom-fix items addressed (scissors timing, score/render frame holds, terminal panel typing "hey claude", "concat" word removed, Pull-the-repo fade, outro boom timing). Render verified: 2053 frames / 68.48s / 4.6 MB.
+
+**Deploy sequence.**
+1. `gh release upload v0.1-demo out/claude-video-editing-flow.mp4 --clobber -R sellersessions/claude-video-editing-flow` — replaced existing asset.
+2. Drag-drop into release body did NOT mint a `user-attachments` URL (release editor routes drops to Assets). Workaround: opened a throwaway issue (#1 "walkthrough video upload"), dragged the MP4 there — issue body produced `https://github.com/user-attachments/assets/3aa780be-3ccb-44ca-9a2b-64533936935f`. Issue then closed (asset persists independently).
+3. README placeholder `<!-- VIDEO PLACEHOLDER -->` block swapped for `<!-- VIDEO -->` block matching `claude-ui-workflow` pattern (bare URL → inline player + release link). Commit `ee2e5f1 docs: embed v0.1-demo walkthrough video in README`. Pushed to PUBLIC `sellersessions/claude-video-editing-flow` `main`.
+
+**Process learning.** GitHub release body editor ≠ issue/PR editor for `user-attachments` URLs. Releases attach files as Assets (download links, no inline player); issues/PRs attach as `user-attachments/assets/<uuid>` (inline embed). Use a throwaway issue when you need the embed URL pattern. Recorded for future explainer drops.
 
 ### 2026-05-03 (Session 9) — bridge committed, dorian validation, Loom feedback, Phase 5 shipped
 
