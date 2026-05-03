@@ -66,6 +66,7 @@ I'm working on the **Claude Video Editing Flow** project. Selection-first workfl
 - [x] **Phase 8 (empty-state + reset).** `clear_picks` server action resets `candidates[].picked=false`. UI Clear-picks button posts the action + clears local `.picked` classes + re-syncs reply/budget. Verdict lanes + Open button now disable (`button[disabled]` native + 0.4 opacity) until `state.render.output.path` exists. Server `do_GET` migrated to `urllib.parse.urlparse` so query strings route correctly; `?fresh=1` resets state on the index route. Stale-session auto-reset: on `serve()` start, if last `events.jsonl` ts > 24h ago, `state.reset()`. Bogus nested `dorian-listings-tips/edit/edit/.vef/` deleted; server relaunched with the per-clip dir. Session 12.
 - [ ] **Open Phase 5 question:** make the whole empty drop-zone box clickable (anywhere = load Dorian sample). Danny answered (Session 11): not needed — end users have files in their project folder, right-click + paste-path is good housekeeping. CLOSED.
 - [ ] **Real-session walkthrough on dorian-listings-tips** — server still running on :8765, state reset to empty. After Phases 6-8 ship, run picker → lockin → render → verdict end-to-end as the post-fix validation pass.
+- [ ] **A11y follow-ups (logged Session 13 by a11y-tester)** — pre-existing (NOT introduced by Session 13 fix), to address before public flip: (1) `—` em-dash placeholder for filename should be `aria-hidden=true` + sr-only sibling "No render yet"; (2) `awaiting render` transition needs `aria-live="polite"` on `.render-output` for screen-reader announce; (3) `disabled` + `aria-disabled` redundant on verdict buttons + Open — pick one; (4) empty `<tbody>` of `.cand-table` should have a `colspan` fallback row "No candidates scored yet" for SR users; (5) `.gcard-meta` text changes silent to AT.
 - [ ] **Push Phase 5 commit** to `sellersessions/claude-video-editing-flow` once Danny signs off on the purple-pill version (commit pending, see Session 9).
 - [ ] **Optional gate-render step** — Claude can write `state.gates.{boundary,close,budget}.detail` via `state.merge()` after lockin to surface real gate findings in the UI panel.
 - [x] **vef hybrid bridge** — Session 8, committed + pushed Session 9 (commit `13c4a99`).
@@ -85,6 +86,34 @@ I'm working on the **Claude Video Editing Flow** project. Selection-first workfl
 - [x] **Vertical 9:16 variant** — `render.py --format vertical` (1080×1920) + SELECTION-RULES.md entry (Session 5)
 
 ## Session Log
+
+### 2026-05-03 (Session 13) — Capture review fix: 2 staleness bugs in pre-score state
+
+**Trigger.** Post-Session 12 review walkthrough. Danny reviewed the 10 Phase 6/7/8 captures (3 trios + reference) plus live `:8765`. Three findings surfaced from the walkthrough:
+
+1. **Phase 7 `02-verdict-overlay.png` looked wrong** — capture showed page top (Drop / Presets / Candidates), not the modal. Hypothesis: capture timing missed the modal, OR overlay never fired.
+2. **Phase 8 reset metadata staleness** — after `?fresh=1`, drop zone correctly empty, but `.gcard-meta` next to candidates table still read `17 scored · top 6 surfaced · pod-test-claude.mp4` (carried over from prior session). Same bleed on `01-disabled-no-output.png`.
+3. **Phase 7 `01` and `03` look near-identical** — `03-lockin-overlay-final` was meant to capture post-animation final state but visually indistinguishable from `01`.
+
+Danny: "Dig in, find the verdict, and then autonomously take over end to end."
+
+**Investigation 1 — verdict overlay.** Reproduced live via `inspect.js` (CDP :9333) on `localhost:8765`: navigated, scrolled to verdict block, clicked `.verdict-btn[data-lane="a"]`. DOM probe immediately after: `{hidden:false, state:"Filing decision...", top:0, height:900}` — overlay DID fire, modal correctly centered, page dimmed. Re-screenshot: overlay clearly visible, "Filing decision..." text, "Back to Claude Code →" CTA, indeterminate progress shimmer. **Verdict: original `02-verdict-overlay.png` was a stale capture artifact** (probably taken before the click landed, or after Esc dismissed it). UI is correct. Replaced with the live capture.
+
+**Investigation 2 — Phase 8 metadata staleness root cause.** Probed live after `?fresh=1`: `meta = "17 scored · top 6 surfaced · pod-test-claude.mp4"`, `candRows = 6` (the hardcoded HTML baseline). Server `/state` returns `{stage:"SETUP", ready:false}` — no `candidates` key. Looked at `renderCandidates(s)` at index.html:927: `if (!Array.isArray(s.candidates)) return;` — the early-return preserves the hardcoded 6 demo rows + meta line. Two-mode design (standalone shows demo; server mode polls): the demo baseline is correct for standalone but a LIE in server mode after fresh state. Same bug class found in `renderRender(s)` at line 1138: `if (!s.render) return;` leaves hardcoded `preview.mp4 · 51.2s · 18.4 MB` and 72% progress fill in DOM after `?fresh=1`.
+
+**Fix (two surgical edits, 22 lines added).** `renderCandidates`: when `s.candidates` missing AND `serverUp` is true, clear `tbody.innerHTML` and reset `.gcard-meta` to `0 scored · awaiting · ${src}` (uses dot-separator + em-dash fallback to match house style). `renderRender`: same pattern — when `!s.render && serverUp`, file-name → `—`, file-stats → `awaiting render`, progress fill → `0%`, last stage text → `0%`, `.stage` `done`/`current` classes removed. Standalone mode (`serverUp=false`) keeps the hardcoded demo intact. Verified empty path (post `?fresh=1`): `meta="0 scored · awaiting · —"`, `candRows=0`, `fileName="—"`, `fileStats="awaiting render"`. Verified populated path (dorian state restored with 12 candidates + render output): `meta="12 scored · top 6 surfaced · dorian-listings-tips.mp4"`, `candRows=12`, `fileName="preview.mp4"`, `fileStats="60.5s · 18.4 MB · opens in QuickTime"`, verdict-btns enabled. Both paths green.
+
+**Agent fleet recovery.** code-reviewer + a11y-tester both ran cleanly this session (S8/9/11/12 flake streak broken). code-reviewer: ship-with-one-fix verdict — but flagged hallucinated function names (`renderProgress`, `renderTelemetry` don't exist; only `render-` functions are Steps/Drop/Presets/Candidates/Budget/Gates/Render/Verdict). The genuine sibling-bug list from real functions: `renderPresets`, `renderGates`, `renderBudget` all early-return on missing state — but those leak DEFAULT placeholder UI (16:9 / 30s / NEUTRAL_PUNCH / SINGLE preset segments + 3 generic gate rows + "EMPTY · target 54-66s" budget label) that's not actually misleading because defaults LOOK like defaults. Scope held to the two functions that visually lied. a11y-tester surfaced 5 a11y items, all PRE-EXISTING in the file pre-Session 13 (em-dash placeholder convention, missing aria-live, disabled+aria-disabled stack on verdict buttons, empty tbody no fallback row, gcard-meta silent transitions). None introduced by this fix. Logged in Next Up as a single batch.
+
+**Captures re-shot (1280×900 standard viewport via inspect.js):**
+- `_captures/vef-bridge/phase-7-handoff/02-verdict-overlay.png` — replaced (was stale, now shows "Filing decision..." modal)
+- `_captures/vef-bridge/phase-8-hygiene/01-disabled-no-output.png` — replaced (now shows "0 scored · awaiting · —" meta + empty tbody, top of page)
+- `_captures/vef-bridge/phase-8-hygiene/02-enabled-with-output.png` — replaced (scrolled to render block; preview.mp4 + verdict A/B/C/D enabled + 24.2s budget UNDER + Reply "1 4")
+- `_captures/vef-bridge/phase-8-hygiene/03-fresh-reload-empty.png` — replaced (scrolled to render block; "—" filename, "awaiting render" stats, 0% progress, verdict A/B/C/D dimmed)
+
+**Files touched.** `Claude-Video-Editing-Flow/mockups/v1-loop-cutter-aligned/index.html` (renderCandidates lines 927-948, renderRender lines 1138-1158). No server changes. State.json gymnastics during reproduction (wipe → restore → wipe → restore) caused some hook-driven `ready=true` flips on click — benign side-effect, doesn't change verification.
+
+**Pushed.** Not yet — pending Danny's sign-off on the four replaced captures + the two-spot diff. Submodule + parent commits queued from Session 12 (`4fcf169` + `43166b1`); Session 13 is a follow-up commit on top once approved.
 
 ### 2026-05-03 (Session 12) — Phases 6-polish + 7 + 8 shipped one-shot
 

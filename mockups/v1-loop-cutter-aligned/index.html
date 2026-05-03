@@ -925,8 +925,20 @@ tr.picked .checkbox::after { content: '✓'; font-weight: 800; }
 
   /* candidates ---------------------------------------------------- */
   function renderCandidates(s) {
-    if (!Array.isArray(s.candidates)) return;
     const tbody = document.querySelector('.cand-table tbody');
+    const meta = document.querySelector('.gcard:has(.cand-table) .gcard-meta');
+    if (!Array.isArray(s.candidates)) {
+      // Server-driven pre-score state (fresh reset, RUN in progress, etc.):
+      // wipe the hardcoded demo baseline so the table reflects truth.
+      if (serverUp) {
+        if (tbody) tbody.innerHTML = '';
+        if (meta) {
+          const src = (s.source && s.source.name) || '—';
+          meta.textContent = `0 scored · awaiting · ${src}`;
+        }
+      }
+      return;
+    }
     if (!tbody) return;
     tbody.innerHTML = s.candidates.map(c => {
       const tier = Math.max(1, Math.min(3, c.tier || 1));
@@ -945,7 +957,6 @@ tr.picked .checkbox::after { content: '✓'; font-weight: 800; }
           <td class="col-quote">"${quote}"</td>
         </tr>`;
     }).join('');
-    const meta = document.querySelector('.gcard:has(.cand-table) .gcard-meta');
     if (meta) {
       const total = s.candidates.length;
       const surfaced = Math.min(total, 6);
@@ -1125,7 +1136,25 @@ tr.picked .checkbox::after { content: '✓'; font-weight: 800; }
 
   /* render progress + output ------------------------------------- */
   function renderRender(s) {
-    if (!s.render) return;
+    if (!s.render) {
+      // Server-driven pre-render state: wipe hardcoded preview baseline
+      // so the surface doesn't lie about a render that hasn't happened.
+      if (serverUp) {
+        const fname = document.querySelector('.render-output .file-name');
+        if (fname) fname.textContent = '—';
+        const stats = document.querySelector('.render-output .file-stats');
+        if (stats) stats.textContent = 'awaiting render';
+        const fill = document.querySelector('.render-progress .fill');
+        if (fill) fill.style.width = '0%';
+        const stages = document.querySelector('.render-stages');
+        if (stages) {
+          const last = stages.children[stages.children.length - 1];
+          if (last) last.textContent = '0%';
+          stages.querySelectorAll('.stage').forEach(el => el.classList.remove('done','current'));
+        }
+      }
+      return;
+    }
     const r = s.render;
     if (r.progress != null) {
       const fill = document.querySelector('.render-progress .fill');
