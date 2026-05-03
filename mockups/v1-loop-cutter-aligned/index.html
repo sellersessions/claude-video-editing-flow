@@ -1112,7 +1112,22 @@ tr.picked .checkbox::after { content: '✓'; font-weight: 800; }
 
   /* gates --------------------------------------------------------- */
   function renderGates(s) {
-    if (!s.gates) return;
+    if (!s.gates) {
+      // Server-driven pre-gates state: wipe hardcoded gate baseline
+      // so the panel doesn't lie about checks that haven't run.
+      if (serverUp) {
+        document.querySelectorAll('.gate-row').forEach(row => {
+          row.classList.remove('pass', 'warn', 'fail');
+          const icon = row.querySelector('.gate-icon');
+          if (icon) icon.textContent = '·';
+          const detail = row.querySelector('.gate-detail');
+          if (detail) detail.textContent = 'awaiting lock-in';
+          const side = row.querySelector('.gate-side');
+          if (side) side.textContent = '—';
+        });
+      }
+      return;
+    }
     const order = ['boundary', 'close', 'budget'];
     const rows = document.querySelectorAll('.gate-row');
     order.forEach((key, i) => {

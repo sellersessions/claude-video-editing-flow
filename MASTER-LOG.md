@@ -3,7 +3,7 @@ project: claude-video-editing-flow
 status: active
 tier: 2
 last_session: 2026-05-03
-last_session_n: 12
+last_session_n: 14
 tags: [video, editing, podcast, ffmpeg, elevenlabs, rich, terminal-first, vef-bridge]
 ---
 
@@ -11,11 +11,11 @@ tags: [video, editing, podcast, ffmpeg, elevenlabs, rich, terminal-first, vef-br
 
 ## Kickoff Prompt (copy after /compact or new session)
 
-I'm working on the **Claude Video Editing Flow** project. Selection-first workflow for cutting raw video (any source — Riverside, Loom, Zoom, phone, YouTube download) into short-form clips.
+I'm working on the **Claude Video Editing Flow** project. **Strategic pivot landed Session 14 (3 May 2026):** scrap the browser UI, lean into batch prep automation, build a guided terminal wizard wrapper. The pipeline already cuts video well; the headline is `batch.py` not the per-clip UI.
 
-**The principle:** Selection is a human decision. Correction is a Claude decision.
+**The principle:** Selection is a human decision. Correction is a Claude decision. (Still holds for hero-clip mode. Suspended in batch mode by design.)
 
-**Terminal-first (locked 23 Apr):** Every interaction moment (picker, lock-in, verdict) is a coloured table in the terminal via `scripts/picker.py`, `scripts/lockin.py`, `scripts/verdict.py`. Markdown files (`candidates.md`, `edl.json`) are git artefacts — **never interfaces**. The only non-terminal moment is QuickTime watching the rendered preview.
+**Terminal-first (re-locked Session 14):** Decision boards in rich panels, not browser UI. One card on screen at a time. No checkboxes, no scrolling, no UI mockups.
 
 **Key files:**
 - Rules: `Claude-Video-Editing-Flow/SELECTION-RULES.md` (includes screen-share variant + reaction-beats-need-setup rules as of 23 Apr)
@@ -34,7 +34,16 @@ I'm working on the **Claude Video Editing Flow** project. Selection-first workfl
 - **rich ≥ 13** (14.3.2 installed) — used by picker/lockin/verdict helpers
 - `/opt/homebrew/opt/python@3.12/bin/python3.12` — canonical python for helpers
 
-**Current state (2 May 2026 — Session 8, vef bridge live):**
+**Current state (3 May 2026 — Session 14 close, scrap-UI-and-build-wizard pivot logged):**
+- **Strategic decision logged:** scrap browser UI, archive `mockups/v1-loop-cutter-aligned/` + `vef/serve.py`, pivot to terminal wizard `prep.py` that wraps `batch.py`. Rationale: 13 sessions of UI work kept discovering hardcoded-baseline leaks (S13 patched candidates+render, S14 patched gates, more would surface). Inverted polarity — should be empty-as-default, demo-as-opt-in, not the reverse.
+- **Plan file staged for next session:** `ClaudeFlow-Agent/plans/cvef-prep-wizard.plan.md` — 6-step build (archive → CLAUDE.md/README cleanup → README batch promotion → source-fitness section → prep.py wizard → smoke test).
+- **Session 14 fix shipped (in-tree, NOT pushed):** `renderGates` empty-state honesty (mirrors S13 pattern). `mockups/v1-loop-cutter-aligned/index.html` line 1114, ~12 LOC added. Gates now show neutral "awaiting lock-in" / `·` icon / `—` side under `serverUp + !s.gates`. Cosmetic-only since the mockup is being archived next session — the fix is for the historical record on the Loom take.
+- **Loom take captured.** Two attempts: autonomous orchestrator (too fast, 22s end-to-end), then paced step-by-step that surfaced the angle-brief workflow gap + the structural debt + the scrap decision live on tape. The Loom is the gold of this session.
+- **vef server still on :8765** with dorian-listings-tips workdir. Will be retired with the archive in next session. Reproduction artefacts in `dorian-listings-tips/edit/`: `edl.s3-accepted.json` (S3 cut backup), `edl.json` (combo-A test), `preview_combo_a.mp4` (autonomous-take render, 2.2 MB / 33s).
+- **Demo plan agreed:** Danny will download 3 hour-long podcasts. `prep.py` wizard fires `batch.py` against the folder. Output handed to Claude Remotion Flow.
+- **Source-fitness reality check logged:** ★★★ podcast/Loom/Zoom · ★★ talking-head with music bed · ✗ no-speech B-roll/parties/music videos (different category of tool, not on roadmap).
+
+**Carry-over (Sessions 8-12, still relevant):**
 - **vef hybrid bridge SHIPPED.** Terminal pipeline + browser UI now share `state.json` + `events.jsonl` inside `<clip>/edit/.vef/`. `python -m vef.serve <clip-folder>` opens the loop-cutter-aligned mockup live. Pipeline scripts auto-write state at each stage. Browser polls 500ms, POSTs clicks to `/event`. Click round-trip verified, candidate-to-pick matching uses closest-bounds (overlap ≥1s + min |Δstart|+|Δend|).
 - **vef package layout:** `vef/__init__.py`, `vef/state.py` (~95 LOC: load/update/merge/append_event/read_events/reset), `vef/serve.py` (~170 LOC stdlib http.server, single-threaded, GET / + /state + /events + /health, POST /event with safe state mutations), `vef/state.example.json` (pod-test-claude worked example for standalone-mode and tests).
 - **Mockup wired:** `mockups/v1-loop-cutter-aligned/index.html` got ~190 LOC vanilla JS (poll + render(state) + click delegation + post helper). Renders all 7 surfaces from state: step pills, drop zone, presets, candidates, budget meter, gates, render bar/output, verdict lanes. Standalone mode (no server) leaves the hardcoded demo content untouched.
@@ -54,9 +63,11 @@ I'm working on the **Claude Video Editing Flow** project. Selection-first workfl
 - ChromaDB decisions #1762 (Dorian) + #1773 (pre-render gates) recorded
 
 **Next action sequence when resuming:**
-1. New clip → full flow runs automatically: transcribe → pack → score → picker → natural-language reply → lockin → **boundary review** → **close check** → render → verdict
-2. Batch mode (new capability needed) → multi-file ingestion, asset library output, compose in Claude Remotion Flow
-3. If colour palette tuning requested → edit `THEME`-style colour constants in each helper's top
+1. **Read** `ClaudeFlow-Agent/plans/cvef-prep-wizard.plan.md` — 6-step build queued.
+2. **Step 1 of plan:** archive `mockups/v1-loop-cutter-aligned/` + `vef/serve.py` to `archive/2026-05-03-browser-ui/`. Keep `vef/state.py` (still used by pipeline scripts).
+3. **Step 2-4:** strip browser-UI references from CLAUDE.md + README, promote `batch.py` to README headline, add source-fitness section.
+4. **Step 5:** build `scripts/prep.py` wizard — 6 rich-panel decision boards (single/folder → path → target → format → grade → confirm) firing `batch.py` with chosen flags. ~150-200 LOC.
+5. **Step 6:** smoke test against the 3 podcasts Danny downloads.
 
 ## Next Up
 
@@ -65,7 +76,11 @@ I'm working on the **Claude Video Editing Flow** project. Selection-first workfl
 - [x] **Phase 7 (handoff overlay).** `.handoff-overlay` primitive: full-screen backdrop + centered card, two-line copy ("Sending to Claude..." / "Back to Claude Code →") + indeterminate shimmer progress (switches to determinate when `state.render.progress` arrives) + Esc hint. Triggered on Lock In click ("Sending..."), Verdict click ("Filing decision..."), and auto-shows on stage transition into RENDER ("Rendering..." / "Watch in Claude Code →"). Esc dismiss, Tab focus trap, focus restore on close, `prefers-reduced-motion: reduce` opt-out. Auto-dismiss when next poll shows stage advanced from `lastPollStage`. Session 12.
 - [x] **Phase 8 (empty-state + reset).** `clear_picks` server action resets `candidates[].picked=false`. UI Clear-picks button posts the action + clears local `.picked` classes + re-syncs reply/budget. Verdict lanes + Open button now disable (`button[disabled]` native + 0.4 opacity) until `state.render.output.path` exists. Server `do_GET` migrated to `urllib.parse.urlparse` so query strings route correctly; `?fresh=1` resets state on the index route. Stale-session auto-reset: on `serve()` start, if last `events.jsonl` ts > 24h ago, `state.reset()`. Bogus nested `dorian-listings-tips/edit/edit/.vef/` deleted; server relaunched with the per-clip dir. Session 12.
 - [ ] **Open Phase 5 question:** make the whole empty drop-zone box clickable (anywhere = load Dorian sample). Danny answered (Session 11): not needed — end users have files in their project folder, right-click + paste-path is good housekeeping. CLOSED.
-- [ ] **Real-session walkthrough on dorian-listings-tips** — server still running on :8765, state reset to empty. After Phases 6-8 ship, run picker → lockin → render → verdict end-to-end as the post-fix validation pass.
+- [x] **Session 13 fix shipped + pushed.** renderCandidates + renderRender pre-score state honesty. Submodule `a87a53d` + parent mirror `33926f1` both live. Captures replaced. (Session 13, this close.)
+- [x] **Real-session walkthrough on dorian-listings-tips** — Session 14, captured on Loom. Two attempts: autonomous (22s, too fast), then paced. End-to-end flow verified working (PICK 12 candidates → GATES 6 picks → RENDER preview_combo_a.mp4 33s/2.2MB → VERDICT a). Walkthrough surfaced ANGLE BRIEF gap + structural debt → scrap-UI decision.
+- [ ] **PIVOT — execute `cvef-prep-wizard.plan.md`** (Session 15): archive mockup + vef/serve.py → strip CLAUDE.md/README of browser-UI refs → promote batch.py to README headline → add source-fitness section → build scripts/prep.py wizard → smoke test on Danny's 3-podcast batch.
+- [ ] **Demo material:** Danny to download 3 hour-long podcasts before Session 15. Pipeline target: 9:16 vertical batch handed to Claude Remotion Flow.
+- [ ] **Session 14 gates fix** — `renderGates` empty-state honesty patch IS in `mockups/v1-loop-cutter-aligned/index.html:1114`. Will be archived (not pushed) with the rest of the mockup. If anyone reverts the scrap decision, the patch is intact.
 - [ ] **A11y follow-ups (logged Session 13 by a11y-tester)** — pre-existing (NOT introduced by Session 13 fix), to address before public flip: (1) `—` em-dash placeholder for filename should be `aria-hidden=true` + sr-only sibling "No render yet"; (2) `awaiting render` transition needs `aria-live="polite"` on `.render-output` for screen-reader announce; (3) `disabled` + `aria-disabled` redundant on verdict buttons + Open — pick one; (4) empty `<tbody>` of `.cand-table` should have a `colspan` fallback row "No candidates scored yet" for SR users; (5) `.gcard-meta` text changes silent to AT.
 - [ ] **Push Phase 5 commit** to `sellersessions/claude-video-editing-flow` once Danny signs off on the purple-pill version (commit pending, see Session 9).
 - [ ] **Optional gate-render step** — Claude can write `state.gates.{boundary,close,budget}.detail` via `state.merge()` after lockin to surface real gate findings in the UI panel.
@@ -86,6 +101,54 @@ I'm working on the **Claude Video Editing Flow** project. Selection-first workfl
 - [x] **Vertical 9:16 variant** — `render.py --format vertical` (1080×1920) + SELECTION-RULES.md entry (Session 5)
 
 ## Session Log
+
+### 2026-05-03 (Session 14) — Loom walkthrough → strategic pivot: scrap browser UI, terminal decision-board wizard
+
+**Trigger.** Resumed from Session 13 close to drive the Loom-recorded dorian end-to-end take against the post-S13 surface on Desktop 2 (Chrome :9334 with CDP automation). Pre-take state on `:8765` had reproduction-residue from earlier probes (2 picks ticked, verdict=a, fake render output path); wiped via `?fresh=1` before recording.
+
+**Take 1 — autonomous walkthrough (failed, too fast).** Built `/tmp/vef-walkthrough.py` orchestrator: 5s pause → picker → CDP scroll to candidates → lockin → scroll to budget → render → scroll to output → verdict + CDP click `[data-lane="a"]`. Total run time 22 seconds (render finished in 9s vs expected 30-60s, so handoff overlay flashed by). All four phases succeeded: PICK (12 candidates) → GATES (6 picks 1/4/5/7/8/9, budget 56s green) → RENDER (preview_combo_a.mp4, 2.2 MB, 33.02s actual vs 56s EDL — likely candidate `source_start_s/end_s` integer-rounding granularity) → VERDICT (state.verdict='a' captured via CDP click on `verdict-btn[data-lane="a"]`). Danny: "way too fast" — autonomous flew through, no narrative for Loom.
+
+**Take 2 — paced step-by-step.** State reset, restarted slowly. Danny clicked "Try the Dorian sample" button + presets (16:9/Custom→60/single) in browser. Events.jsonl confirmed source + presets landed in state, but stage stayed SETUP (no candidates) — picker is a separate scoring step that doesn't auto-fire after sample button click. **Real workflow gap surfaced on tape.**
+
+**Findings audit (mid-Loom probe via CDP).**
+- ✅ Verdict lanes correct: `disabled=true, aria-disabled='true', opacity=0.4` (Phase 8 honored — screenshot fooled me, dimmed colors still visible enough)
+- ✅ Open button correct: same disabled/aria/0.4 stack
+- ✅ Step pills correct: only `'✓ Drop'` has `step current` class (I misread the screenshot; "4 Pick" was just the next pill, not lit)
+- ❌ **Pre-render Gates leak pod-test-claude demo content** under serverUp + empty state. Hardcoded HTML baseline at lines 680-705 (`gate-row pass/warn` with detail copy `Pick 1 start auto-shifted 13.58 → 14.16` / `It can write them.` / `38.8s of 54-66s window. Suggest add #2 INSIGHT`). Same class of bug as S13 — missed surface. `renderGates(s)` at line 1114 had `if (!s.gates) return;` — early return preserves hardcoded baseline. **Fixed** by mirroring S13's `renderRender` empty-state pattern: when `!s.gates && serverUp`, wipe `pass/warn/fail` classes, set icon=`·`, detail=`awaiting lock-in`, side=`—`. Verified: all three gates show neutral empty state. ~12 lines added at index.html:1114.
+- ⚠️ TARGET row no default highlight (cosmetic, not functional — actual target comes from candidates.json target_s, not the preset card). Logged, not fixed.
+
+**Strategic surface — angle-brief gap.** Danny: "We haven't given any guidance on what is the angle where we head in with this. I think that's the step, and then the candidates should appear based on that." Real workflow needs: SETUP → **ANGLE BRIEF** → SCORE-WITH-LENS → PICK → LOCKIN → RENDER → VERDICT. UI today has no surface for ANGLE BRIEF. Dorian "got away with it" because candidates.json was scored generically in a prior session.
+
+**Strategic decision — scrap browser UI, terminal-first with decision boards.** Danny: "We've come so far down the road with a UI we may have built something and missed gaping holes... it might be just easier to scrap it and start again because we've probably got loads of junk code now." Then: "the terminal can be quite uncomfortable to read, and you can't hit checkboxes... what it really comes down to is that we want Claude to guide you through what to do." Pivot: build a guided terminal wizard with rich-panel decision boards. One card on screen at a time. No browser.
+
+**The buried lede — `batch.py` is the prep machine.** Danny re-read README and reframed: "the magic of this really is preparing a load of clips. Getting the start and end points right and then maybe matching the colours with colour grading... the prep work that no one likes to do." `batch.py` (README lines 273-294) already does this: greedy pack → Gate 1 auto-snap → Gate 2 landing check → render via render.py → assets-dir symlink + ledger. **Batch mode is the headline, not the footer.** Selection-first per-clip (picker/lockin/verdict) demoted to "for hero clips" optional surface.
+
+**Source-fitness reality check.** Danny raised conference reels / parties / distorted-music short clips: "If you strip the sound, we're not working to text." Confirmed: pipeline is transcript-driven, no speech = wrong tool. Three-tier source matrix: ★★★ podcast/Loom/Zoom/Riverside · ★★ talking-head with music bed · ✗ no-speech B-roll/music videos/parties (different category of tool entirely, visual cut + beat detection, separate codebase, not on roadmap).
+
+**Demo plan agreed.** Danny will download 3 hour-long podcasts. `prep.py` wizard fires `batch.py` against the folder. ~24 min ETA → 15-25 clips graded/gate-snapped/9:16-formatted ready for Remotion Flow handoff. Phase 2 maybe colour-match across batch (deferred decision).
+
+**`prep.py` wizard concept (next session build).** Six decision boards via rich panels:
+1. Single clip vs folder
+2. Source path (drag-drop or paste)
+3. Target duration (30s / 60s / 90s / Custom)
+4. Output format (16:9 / 9:16 / Screen-share)
+5. Grade (neutral_punch / screen_punch / warm_cinematic)
+6. Confirm summary → fires `batch.py` with chosen flags
+
+Tech: rich.console + rich.panel + raw stdin. ~150-200 LOC, ~half-session build.
+
+**Files touched this session.**
+- `Claude-Video-Editing-Flow/mockups/v1-loop-cutter-aligned/index.html` — `renderGates` empty-state fix (12 LOC added at line 1114).
+- `dorian-listings-tips/edit/edl.json` — replaced with combo-A test EDL (6 ranges, 56s); S3-accepted version backed up to `edl.s3-accepted.json`.
+- `dorian-listings-tips/edit/preview_combo_a.mp4` — autonomous-take render artefact (2.2 MB, 33s).
+- `Claude-Video-Editing-Flow/MASTER-LOG.md` — this entry.
+- `ClaudeFlow-Agent/plans/cvef-prep-wizard.plan.md` — new plan file for next session (archive mockup + build prep.py).
+
+**Not done this session.** Mockup archive deferred to next session (destructive-ish move belongs as first executed plan step, not session-close housekeeping). README rewrite deferred. `prep.py` build deferred.
+
+**Loom take.** Captured the gap discovery + structural-debt observation + scrap decision live on tape — "the honest state of the project" said back to Danny as the recording.
+
+**Session closed 18:16 BST.** No git push from this session — the gates fix lands as part of the archive sweep in Session 15 (no point pushing a fix to a file that's about to be archived). Plan file + master log + INDEX commit on close.
 
 ### 2026-05-03 (Session 13) — Capture review fix: 2 staleness bugs in pre-score state
 
@@ -113,7 +176,7 @@ Danny: "Dig in, find the verdict, and then autonomously take over end to end."
 
 **Files touched.** `Claude-Video-Editing-Flow/mockups/v1-loop-cutter-aligned/index.html` (renderCandidates lines 927-948, renderRender lines 1138-1158). No server changes. State.json gymnastics during reproduction (wipe → restore → wipe → restore) caused some hook-driven `ready=true` flips on click — benign side-effect, doesn't change verification.
 
-**Pushed.** Not yet — pending Danny's sign-off on the four replaced captures + the two-spot diff. Submodule + parent commits queued from Session 12 (`4fcf169` + `43166b1`); Session 13 is a follow-up commit on top once approved.
+**Pushed (close, 16:11 BST).** Danny signed off on the natural-language walkthrough of the fix. Submodule commit `a87a53d` ("session: claude-video-editing-flow Session 13 -- pre-score state honesty") on top of `4fcf169`, pushed to `sellersessions/claude-video-editing-flow main` (`4fcf169..a87a53d`). Parent mirror commit `33926f1` ("parent: claude-video-editing-flow Session 13 (commit a87a53d)") on top of `43166b1`, pushed to `sellersessions/Claude-Code-Projects main` (`bb56982..33926f1`). Loom-recorded dorian end-to-end take queued for the next fresh session (browser on Desktop 2 + terminal alongside, clean context budget).
 
 ### 2026-05-03 (Session 12) — Phases 6-polish + 7 + 8 shipped one-shot
 
