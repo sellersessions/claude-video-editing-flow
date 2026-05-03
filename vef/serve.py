@@ -24,11 +24,14 @@ import json
 import os
 import sys
 import time
+import urllib.parse
 import webbrowser
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 
 from . import state
+
+STALE_SESSION_AGE_S = 24 * 3600  # auto-reset state on serve start if older
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 MOCKUP_HTML = (
@@ -61,6 +64,14 @@ def _apply_event_to_state(action: str, payload: dict) -> None:
                 break
         if toggled:
             state.update(candidates=cands)
+    elif action == "clear_picks":
+        cur = state.load()
+        cands = cur.get("candidates")
+        if not cands:
+            return
+        for c in cands:
+            c["picked"] = False
+        state.update(candidates=cands)
     elif action == "lockin":
         # Mark ready=true so terminal Claude knows the user is done picking.
         # Reply text (if typed in the browser input) is logged in the event.
@@ -83,20 +94,26 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def do_GET(self) -> None:
-        if self.path in ("/", "/index.html"):
+        parsed = urllib.parse.urlparse(self.path)
+        path = parsed.path
+        query = urllib.parse.parse_qs(parsed.query)
+        if path in ("/", "/index.html"):
+            if query.get("fresh") == ["1"]:
+                state.reset()
+                state.update(stage="SETUP", ready=False)
             if not MOCKUP_HTML.exists():
                 self._send(500, b"mockup not found", "text/plain")
                 return
             self._send(200, MOCKUP_HTML.read_bytes(), "text/html; charset=utf-8")
-        elif self.path == "/state":
+        elif path == "/state":
             sp = state.state_path()
             body = sp.read_bytes() if sp.exists() else b"{}"
             self._send(200, body, "application/json")
-        elif self.path == "/events":
+        elif path == "/events":
             ep = state.events_path()
             body = ep.read_bytes() if ep.exists() else b""
             self._send(200, body, "application/x-ndjson")
-        elif self.path == "/health":
+        elif path == "/health":
             self._send(200, b'{"ok":true}', "application/json")
         else:
             self._send(404, b"not found")
@@ -145,6 +162,13 @@ def serve(clip_folder: Path, port: int = 8765, open_browser: bool = True) -> Non
     workdir = edit_dir / ".vef"
     workdir.mkdir(parents=True, exist_ok=True)
     os.environ["VEF_WORKDIR"] = str(workdir)
+
+    # Auto-reset stale state so a returning user doesn't inherit yesterday's picks.
+    events = state.read_events()
+    if events:
+        last_ts = events[-1].get("ts", 0)
+        if time.time() - last_ts > STALE_SESSION_AGE_S:
+            state.reset()
 
     if not state.state_path().exists():
         state.update(stage="SETUP", ready=False)

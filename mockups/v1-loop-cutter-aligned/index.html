@@ -388,6 +388,84 @@ tr.picked .checkbox::after { content: '✓'; font-weight: 800; }
 .verdict-btn[data-lane="d"] { border-color: rgba(249,115,22,.40); }
 .verdict-btn[data-lane="d"]:hover { background: rgba(249,115,22,.10); }
 .verdict-btn[data-lane="d"] .name { color: var(--ss-orange); }
+.verdict-btn[disabled],
+.btn-mini[disabled] {
+  opacity: .4; cursor: not-allowed; transform: none !important;
+}
+.verdict-btn[disabled]:hover,
+.btn-mini[disabled]:hover { background: inherit; }
+
+/* Handoff overlay --------------------------- */
+.handoff-overlay {
+  position: fixed; inset: 0; z-index: 9999;
+  display: flex; align-items: center; justify-content: center;
+}
+.handoff-overlay[hidden] { display: none; }
+.handoff-backdrop {
+  position: absolute; inset: 0;
+  background: rgba(12,3,34,.78);
+  backdrop-filter: blur(6px);
+}
+.handoff-card {
+  position: relative; max-width: 420px; width: calc(100% - 48px);
+  padding: 32px 36px 24px;
+  background: linear-gradient(180deg, var(--ss-deep-2) 0%, var(--ss-deep) 100%);
+  border: 1px solid var(--copy); border-radius: var(--radius-xl);
+  box-shadow: 0 0 60px rgba(117,62,247,.40), var(--shadow-card);
+  text-align: center;
+  display: flex; flex-direction: column; align-items: center; gap: 16px;
+  animation: handoffEnter 240ms cubic-bezier(.16,1,.3,1);
+}
+@keyframes handoffEnter {
+  from { transform: translateY(8px) scale(.96); opacity: 0; }
+  to   { transform: translateY(0) scale(1); opacity: 1; }
+}
+.handoff-state {
+  font-size: 18px; font-weight: 700; color: var(--ink);
+  letter-spacing: -.01em;
+}
+.handoff-cta {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 12px 24px; border-radius: var(--radius-md);
+  background: var(--ss-purple-light); color: #fff;
+  font-family: inherit; font-size: 13px; font-weight: 700;
+  border: none; cursor: pointer;
+  box-shadow: 0 0 24px rgba(117,62,247,.45);
+  transition: all var(--transition);
+}
+.handoff-cta:hover { background: var(--ss-purple-glow); }
+.handoff-cta:focus { outline: none; box-shadow: 0 0 0 3px rgba(117,62,247,.40); }
+.handoff-progress {
+  width: 100%; height: 3px; border-radius: 999px;
+  background: var(--panel-3); overflow: hidden; margin-top: 4px;
+}
+.handoff-progress .bar {
+  display: block; height: 100%;
+  background: linear-gradient(90deg, var(--ss-purple-light), var(--ss-purple-glow));
+  border-radius: 999px;
+}
+.handoff-progress.indeterminate .bar {
+  width: 35%;
+  animation: handoffShimmer 1.4s ease-in-out infinite;
+}
+.handoff-progress.determinate .bar {
+  width: 0; transition: width 240ms ease;
+}
+@keyframes handoffShimmer {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(380%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .handoff-card { animation: none; }
+  .handoff-progress.indeterminate .bar { animation: none; width: 100%; }
+  .handoff-progress.determinate .bar { transition: none; }
+}
+.handoff-hint { font-size: 11px; color: var(--ink-faint); margin-top: 4px; }
+.handoff-hint kbd {
+  display: inline-block; font-family: var(--font-mono); font-size: 10px;
+  background: rgba(117,62,247,.10); border: 1px solid rgba(117,62,247,.28);
+  border-radius: 4px; padding: 1px 6px; color: var(--copy); font-weight: 600;
+}
 
 /* Footer hint ------------------------------ */
 .footer-hint {
@@ -502,7 +580,10 @@ tr.picked .checkbox::after { content: '✓'; font-weight: 800; }
   <section class="gcard">
     <div class="gcard-head">
       <h3>3 · Candidates</h3>
-      <span class="gcard-meta">17 scored · top 6 surfaced · pod-test-claude.mp4</span>
+      <div style="display:flex; gap:10px; align-items:center;">
+        <span class="gcard-meta">17 scored · top 6 surfaced · pod-test-claude.mp4</span>
+        <button class="btn-mini btn-clear-picks" type="button">Clear picks</button>
+      </div>
     </div>
     <div class="gcard-legend">Sections found for you to use. Tick the ones that flow.</div>
     <table class="cand-table">
@@ -654,7 +735,7 @@ tr.picked .checkbox::after { content: '✓'; font-weight: 800; }
               <span class="file-stats">51.2s · 18.4 MB · opens in QuickTime</span>
             </div>
           </div>
-          <button class="btn-mini" style="background: var(--ss-purple-light); color: #fff; border-color: var(--ss-purple-light); font-weight: 700;">Open</button>
+          <button class="btn-mini btn-open-output" type="button" style="background: var(--ss-purple-light); color: #fff; border-color: var(--ss-purple-light); font-weight: 700;">Open</button>
         </div>
 
         <div class="verdict-row">
@@ -691,6 +772,16 @@ tr.picked .checkbox::after { content: '✓'; font-weight: 800; }
 
 </main>
 
+<div class="handoff-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="handoff-state">
+  <div class="handoff-backdrop" aria-hidden="true"></div>
+  <div class="handoff-card" tabindex="-1">
+    <div class="handoff-state" id="handoff-state">Sending to Claude...</div>
+    <button class="handoff-cta" type="button">Back to Claude Code →</button>
+    <div class="handoff-progress indeterminate"><span class="bar"></span></div>
+    <div class="handoff-hint">Press <kbd>Esc</kbd> to dismiss</div>
+  </div>
+</div>
+
 <script>
 /* ------------------------------------------------------------------
    vef bridge — polls /state, renders into existing markup, POSTs clicks
@@ -700,6 +791,17 @@ tr.picked .checkbox::after { content: '✓'; font-weight: 800; }
   const STAGES = ['SETUP','RUN','PICK','GATES','RENDER','VERDICT','DONE'];
   let lastSerialized = '';
   let serverUp = true;
+  // Budget config — picks up state.budget.{target_s,lower,upper} when live;
+  // defaults match the 60s mockup (54-66s window = 10% tolerance).
+  let budgetCfg = { target: 60, lower: 54, upper: 66 };
+  // Last auto-filled reply value. If the input still equals this, we may
+  // refresh it; if the user has typed something different, leave it alone.
+  let lastAutoReply = (document.querySelector('.reply-input') || {}).value || '';
+  // Handoff overlay state machine.
+  let handoffOpen = false;
+  let handoffTriggerStage = null;
+  let handoffLastFocus = null;
+  let lastPollStage = null;
 
   async function poll() {
     try {
@@ -742,6 +844,10 @@ tr.picked .checkbox::after { content: '✓'; font-weight: 800; }
     renderGates(s);
     renderRender(s);
     renderVerdict(s);
+    // After candidates+budget paint, re-derive reply + budget total from
+    // the picked rows in the DOM so demo and live mode stay coherent.
+    syncDerivedFromPicks();
+    maintainHandoff(s);
   }
 
   // Logical stages collapse into 7 visual pills:
@@ -852,32 +958,146 @@ tr.picked .checkbox::after { content: '✓'; font-weight: 800; }
   function renderBudget(s) {
     if (!s.budget) return;
     const b = s.budget;
+    if (b.target_s != null) budgetCfg.target = b.target_s;
+    if (b.lower != null) budgetCfg.lower = b.lower;
+    if (b.upper != null) budgetCfg.upper = b.upper;
+    const win = document.querySelector('.budget-meter .window');
+    if (win && b.lower != null && b.upper != null) {
+      const span = b.upper * 1.2;
+      win.style.left = ((b.lower / span) * 100) + '%';
+      win.style.right = (100 - (b.upper / span) * 100) + '%';
+    }
+    // Numeric/label/fill paint comes from syncBudgetFromPicks (DOM-derived,
+    // single source of truth so demo + live behave identically).
+  }
+
+  /* picks-derived UI sync ----------------------------------------- */
+  function pickedRows() {
+    return Array.from(document.querySelectorAll('.cand-table tbody tr.picked'));
+  }
+  function syncReplyFromPicks() {
+    const input = document.querySelector('.reply-input');
+    if (!input) return;
+    const ids = pickedRows()
+      .map(r => parseInt(r.getAttribute('data-id'), 10))
+      .filter(n => !isNaN(n))
+      .sort((a, b) => a - b)
+      .join(' ');
+    const focused = document.activeElement === input;
+    const diverged = input.value.trim() !== lastAutoReply.trim();
+    if (!focused && !diverged) input.value = ids;
+    lastAutoReply = ids;
+  }
+  function syncBudgetFromPicks() {
+    let total = 0;
+    pickedRows().forEach(r => {
+      const cell = r.querySelector('.col-dur');
+      if (!cell) return;
+      const m = cell.textContent.match(/[\d.]+/);
+      if (m) total += parseFloat(m[0]);
+    });
     const stats = document.querySelectorAll('.budget .budget-stat');
-    if (stats.length >= 1 && b.total_s != null) {
-      stats[0].textContent = b.total_s.toFixed(1) + 's';
-    }
-    if (stats.length >= 2 && b.target_s != null) {
-      const status = b.in_window ? 'ok' : (b.delta < 0 ? 'warn' : 'warn');
-      const word = b.in_window ? 'IN WINDOW' : (b.delta < 0 ? 'UNDER' : 'OVER');
-      const tip = (b.delta != null && !b.in_window)
-        ? ` · target ${b.lower}-${b.upper}s · ${b.delta > 0 ? 'drop' : 'add'} needed`
-        : ` · target ${b.lower}-${b.upper}s`;
-      stats[1].innerHTML = `<span class="${status}">${word}</span>${escapeHtml(tip)}`;
-    }
+    if (stats[0]) stats[0].textContent = total.toFixed(1) + 's';
+    const { lower, upper } = budgetCfg;
     const fill = document.querySelector('.budget-meter .fill');
-    const window = document.querySelector('.budget-meter .window');
-    if (fill && b.target_s) {
-      const pct = Math.min(120, (b.total_s / (b.upper || b.target_s)) * 100);
-      fill.style.width = pct + '%';
-    }
-    if (window && b.target_s && b.lower != null && b.upper != null) {
-      const span = b.upper * 1.2;  // visual scale roughly aligned to fill
-      const left = (b.lower / span) * 100;
-      const right = 100 - (b.upper / span) * 100;
-      window.style.left = left + '%';
-      window.style.right = right + '%';
+    if (fill) fill.style.width = Math.min(120, (total / upper) * 100) + '%';
+    if (stats[1]) {
+      let word, klass, tip;
+      if (total === 0) {
+        word = 'EMPTY'; klass = 'warn';
+        tip = ` · target ${lower}-${upper}s`;
+      } else if (total >= lower && total <= upper) {
+        word = 'OK'; klass = 'ok';
+        tip = ` · target ${lower}-${upper}s`;
+      } else if (total < lower) {
+        word = 'UNDER'; klass = 'warn';
+        tip = ` · target ${lower}-${upper}s · add ${(lower - total).toFixed(1)}s`;
+      } else {
+        word = 'OVER'; klass = 'warn';
+        tip = ` · target ${lower}-${upper}s · drop ${(total - upper).toFixed(1)}s`;
+      }
+      stats[1].innerHTML = `<span class="${klass}">${word}</span>${tip}`;
     }
   }
+  function syncDerivedFromPicks() {
+    syncReplyFromPicks();
+    syncBudgetFromPicks();
+  }
+
+  /* handoff overlay ---------------------------------------------- */
+  function showHandoff(opts) {
+    const overlay = document.querySelector('.handoff-overlay');
+    if (!overlay || handoffOpen) return;
+    overlay.querySelector('.handoff-state').textContent = opts.state;
+    overlay.querySelector('.handoff-cta').textContent = opts.cta;
+    const progress = overlay.querySelector('.handoff-progress');
+    progress.classList.add('indeterminate');
+    progress.classList.remove('determinate');
+    progress.querySelector('.bar').style.width = '';
+    overlay.removeAttribute('hidden');
+    handoffOpen = true;
+    handoffTriggerStage = opts.fromStage || null;
+    handoffLastFocus = document.activeElement;
+    setTimeout(() => overlay.querySelector('.handoff-cta').focus(), 30);
+  }
+  function hideHandoff() {
+    const overlay = document.querySelector('.handoff-overlay');
+    if (!overlay || !handoffOpen) return;
+    overlay.setAttribute('hidden', '');
+    handoffOpen = false;
+    handoffTriggerStage = null;
+    if (handoffLastFocus && handoffLastFocus.focus) {
+      try { handoffLastFocus.focus(); } catch (e) { /* removed from DOM */ }
+    }
+  }
+  function maintainHandoff(s) {
+    const stage = s.stage || 'SETUP';
+    if (handoffOpen && handoffTriggerStage && stage !== handoffTriggerStage) {
+      hideHandoff();
+    }
+    if (!handoffOpen
+        && stage === 'RENDER'
+        && lastPollStage !== null
+        && lastPollStage !== 'RENDER') {
+      showHandoff({
+        state: 'Rendering...',
+        cta: 'Watch in Claude Code →',
+        fromStage: 'RENDER',
+      });
+    }
+    lastPollStage = stage;
+    if (handoffOpen && s.render && typeof s.render.progress === 'number') {
+      const progress = document.querySelector('.handoff-progress');
+      if (progress) {
+        progress.classList.remove('indeterminate');
+        progress.classList.add('determinate');
+        progress.querySelector('.bar').style.width =
+          (s.render.progress * 100).toFixed(0) + '%';
+      }
+    }
+  }
+  document.addEventListener('keydown', (e) => {
+    if (!handoffOpen) return;
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      return hideHandoff();
+    }
+    if (e.key !== 'Tab') return;
+    const overlay = document.querySelector('.handoff-overlay');
+    const focusables = overlay.querySelectorAll(
+      'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])'
+    );
+    if (!focusables.length) return;
+    const first = focusables[0];
+    const last = focusables[focusables.length - 1];
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault(); last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault(); first.focus();
+    }
+  }, true);
+  document.querySelector('.handoff-cta')
+    .addEventListener('click', () => hideHandoff());
 
   /* gates --------------------------------------------------------- */
   function renderGates(s) {
@@ -943,10 +1163,18 @@ tr.picked .checkbox::after { content: '✓'; font-weight: 800; }
 
   /* verdict ------------------------------------------------------- */
   function renderVerdict(s) {
+    const hasOutput = !!(s.render && s.render.output && s.render.output.path);
     const lanes = document.querySelectorAll('.verdict-btn');
     lanes.forEach(b => {
       b.classList.toggle('selected', s.verdict === b.getAttribute('data-lane'));
+      b.disabled = !hasOutput;
+      b.setAttribute('aria-disabled', String(!hasOutput));
     });
+    const openBtn = document.querySelector('.btn-open-output');
+    if (openBtn) {
+      openBtn.disabled = !hasOutput;
+      openBtn.setAttribute('aria-disabled', String(!hasOutput));
+    }
   }
 
   /* click delegation ---------------------------------------------- */
@@ -975,10 +1203,19 @@ tr.picked .checkbox::after { content: '✓'; font-weight: 800; }
       if (key === 'mode') value = value.toLowerCase().includes('batch') ? 'batch' : 'single';
       return post('set_preset', { key, value });
     }
+    // clear picks button
+    const clearBtn = e.target.closest('.btn-clear-picks');
+    if (clearBtn) {
+      document.querySelectorAll('.cand-table tbody tr.picked')
+        .forEach(r => r.classList.remove('picked'));
+      syncDerivedFromPicks();
+      return post('clear_picks', {});
+    }
     // candidate row click → toggle_pick
     const row = e.target.closest('.cand-table tbody tr');
     if (row) {
       row.classList.toggle('picked');
+      syncDerivedFromPicks();
       const id = parseInt(row.getAttribute('data-id'), 10);
       if (!isNaN(id)) return post('toggle_pick', { id });
       return;
@@ -987,12 +1224,24 @@ tr.picked .checkbox::after { content: '✓'; font-weight: 800; }
     const lane = e.target.closest('.verdict-btn');
     if (lane) {
       const v = lane.getAttribute('data-lane');
-      if (v) return post('verdict', { lane: v });
+      if (v) {
+        showHandoff({
+          state: 'Filing decision...',
+          cta: 'Back to Claude Code →',
+          fromStage: lastPollStage,
+        });
+        return post('verdict', { lane: v });
+      }
     }
     // lock-in button (gold) inside .reply-bar
     if (e.target.closest('.reply-bar button')) {
       const input = document.querySelector('.reply-input');
       const reply = input ? input.value : '';
+      showHandoff({
+        state: 'Sending to Claude...',
+        cta: 'Back to Claude Code →',
+        fromStage: lastPollStage,
+      });
       return post('lockin', { reply });
     }
   });
@@ -1008,6 +1257,9 @@ tr.picked .checkbox::after { content: '✓'; font-weight: 800; }
   });
 
   /* boot ---------------------------------------------------------- */
+  // Run a first-paint sync so the static demo (1 2 4 6 / 38.8s) is an
+  // honest derivation rather than baked text.
+  syncDerivedFromPicks();
   setInterval(poll, POLL_MS);
   poll();
 })();
