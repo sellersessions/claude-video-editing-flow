@@ -14,9 +14,11 @@
 **Drop any video file. Get a short-form cut with no timeline scrubbing.**
 **Claude transcribes, scores and renders. You tick the candidates.**
 
-<!-- VIDEO PLACEHOLDER: swap this block for the YouTube embed once recorded -->
-> **Walkthrough video coming soon.**
-<!-- /VIDEO PLACEHOLDER -->
+<!-- VIDEO -->
+https://github.com/user-attachments/assets/3aa780be-3ccb-44ca-9a2b-64533936935f
+
+> **Walkthrough video:** 65-second tour of the 5-stage pipeline. Full release: [v0.1-demo](https://github.com/sellersessions/claude-video-editing-flow/releases/tag/v0.1-demo).
+<!-- /VIDEO -->
 
 ---
 
