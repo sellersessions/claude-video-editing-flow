@@ -162,12 +162,30 @@ body {
 /* Preset rows ------------------------------- */
 .preset-row {
   display: grid; grid-template-columns: 92px 1fr; align-items: center;
-  gap: 16px; padding: 10px 0; border-bottom: 1px solid var(--line-soft);
+  gap: 4px 16px; padding: 10px 0; border-bottom: 1px solid var(--line-soft);
 }
 .preset-row:last-child { border-bottom: none; }
 .preset-row .label {
   font-size: 11px; color: var(--ink-muted); font-weight: 600;
   text-transform: uppercase; letter-spacing: 1px;
+  grid-row: 1 / span 2; align-self: center;
+}
+.preset-row .seg { grid-column: 2; grid-row: 1; }
+.preset-row .legend { grid-column: 2; grid-row: 2; }
+
+/* Legend primitive ------------------------- */
+.legend {
+  font-size: 10px; color: var(--ink-faint);
+  letter-spacing: .3px; line-height: 1.5;
+}
+.gcard-legend {
+  padding: 8px 18px 10px; font-size: 10px;
+  color: var(--ink-faint); letter-spacing: .3px;
+  border-bottom: 1px solid var(--line-soft);
+}
+.budget-legend {
+  padding: 0 18px 12px; font-size: 10px;
+  color: var(--ink-faint); letter-spacing: .3px;
 }
 .seg {
   display: inline-flex; padding: 3px; gap: 2px;
@@ -446,6 +464,7 @@ tr.picked .checkbox::after { content: '✓'; font-weight: 800; }
             <button>9:16</button>
             <button>Screen</button>
           </div>
+          <span class="legend">16:9 YouTube · 9:16 Reels · Screen Loom capture</span>
         </div>
         <div class="preset-row">
           <span class="label">Target</span>
@@ -455,6 +474,7 @@ tr.picked .checkbox::after { content: '✓'; font-weight: 800; }
             <button>90s</button>
             <button>Custom</button>
           </div>
+          <span class="legend">60s standard · Custom for shorts (&lt;30s) or long-form</span>
         </div>
         <div class="preset-row">
           <span class="label">Grade</span>
@@ -463,6 +483,7 @@ tr.picked .checkbox::after { content: '✓'; font-weight: 800; }
             <button>screen_punch</button>
             <button>warm_cinematic</button>
           </div>
+          <span class="legend">3 standard color grades to make your video look pro</span>
         </div>
         <div class="preset-row">
           <span class="label">Mode</span>
@@ -470,6 +491,7 @@ tr.picked .checkbox::after { content: '✓'; font-weight: 800; }
             <button class="active">Single clip</button>
             <button>Batch (folder)</button>
           </div>
+          <span class="legend">Single = one clip · Batch = 10-15 clips, prep your video</span>
         </div>
       </div>
     </section>
@@ -481,6 +503,7 @@ tr.picked .checkbox::after { content: '✓'; font-weight: 800; }
       <h3>3 · Candidates</h3>
       <span class="gcard-meta">17 scored · top 6 surfaced · pod-test-claude.mp4</span>
     </div>
+    <div class="gcard-legend">Sections found for you to use. Tick the ones that flow.</div>
     <table class="cand-table">
       <thead>
         <tr>
@@ -559,6 +582,7 @@ tr.picked .checkbox::after { content: '✓'; font-weight: 800; }
       </div>
       <span class="budget-stat"><span class="warn">UNDER</span> · target 54-66s · suggest add #2</span>
     </div>
+    <div class="budget-legend">Picked total vs target window (54-66s for a 60s cut).</div>
   </section>
 
   <!-- Two-column row: Gates + Render -->
