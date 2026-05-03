@@ -139,15 +139,25 @@ body {
 .drop-zone .drop-icon { color: var(--copy); opacity: .85; font-size: 32px; }
 .drop-zone h4 { font-size: 17px; font-weight: 700; }
 .drop-zone p { color: var(--ink-muted); font-size: 13px; }
-.drop-recents {
-  display: flex; gap: 8px; margin-top: 6px; flex-wrap: wrap; justify-content: center;
+.drop-actions {
+  display: flex; flex-direction: column; gap: 10px; margin-top: 10px;
+  width: 100%; max-width: 320px;
 }
-.drop-recents .chip {
-  font-size: 11px; padding: 5px 10px; border-radius: 999px;
-  background: rgba(117,62,247,.10); border: 1px solid rgba(117,62,247,.30);
-  color: var(--copy); font-weight: 500; cursor: pointer; transition: all var(--transition);
+.drop-sample {
+  font-size: 13px; padding: 10px 16px; border-radius: 999px;
+  background: rgba(117,62,247,.14); border: 1px solid rgba(117,62,247,.45);
+  color: var(--copy); font-weight: 600; cursor: pointer;
+  transition: all var(--transition); font-family: inherit;
 }
-.drop-recents .chip:hover { background: rgba(117,62,247,.20); color: #fff; }
+.drop-sample:hover { background: rgba(117,62,247,.24); color: #fff; }
+.drop-paste input {
+  width: 100%; font-size: 12px; padding: 8px 12px; border-radius: 8px;
+  background: rgba(0,0,0,.30); border: 1px solid var(--line-soft);
+  color: var(--ink); font-family: var(--font-mono); text-align: center;
+  box-sizing: border-box;
+}
+.drop-paste input::placeholder { color: var(--ink-faint); }
+.drop-paste input:focus { outline: none; border-color: var(--copy); }
 
 /* Preset rows ------------------------------- */
 .preset-row {
@@ -412,11 +422,12 @@ tr.picked .checkbox::after { content: '✓'; font-weight: 800; }
         <div class="drop-zone">
           <div class="drop-icon">⬇</div>
           <h4>Drop a video here</h4>
-          <p>or paste a path. Anything with speech: podcast, Loom, Zoom, phone, screen-rec.</p>
-          <div class="drop-recents">
-            <span class="chip">↻ pod-test-claude.mp4</span>
-            <span class="chip">↻ dorian-listings-tips.mp4</span>
-            <span class="chip">↻ ssl-greenroom.mp4</span>
+          <p>or click below to try a sample, or paste a clip-folder path.</p>
+          <div class="drop-actions">
+            <button class="drop-sample" data-sample="dorian">▶ Try the Dorian sample</button>
+            <div class="drop-paste">
+              <input type="text" placeholder="or paste a clip-folder path">
+            </div>
           </div>
         </div>
       </div>
@@ -733,20 +744,18 @@ tr.picked .checkbox::after { content: '✓'; font-weight: 800; }
   function renderDrop(s) {
     const h4 = document.querySelector('.drop-zone h4');
     const p = document.querySelector('.drop-zone p');
-    if (s.source && s.source.name) {
+    const actions = document.querySelector('.drop-actions');
+    const loaded = s.source && s.source.name;
+    if (loaded) {
       if (h4) h4.textContent = s.source.name;
       if (p) p.textContent = (s.source.duration_s
         ? `loaded · ${fmtTime(s.source.duration_s)}`
         : 'loaded');
+      if (actions) actions.style.display = 'none';
     } else {
       if (h4) h4.textContent = 'Drop a video here';
-      if (p) p.textContent = 'or paste a path. Anything with speech: podcast, Loom, Zoom, phone, screen-rec.';
-    }
-    const wrap = document.querySelector('.drop-recents');
-    if (wrap && Array.isArray(s.recents)) {
-      wrap.innerHTML = s.recents.map(name =>
-        `<span class="chip" data-path="${escapeHtml(name)}">↻ ${escapeHtml(name)}</span>`
-      ).join('');
+      if (p) p.textContent = 'or click below to try a sample, or paste a clip-folder path.';
+      if (actions) actions.style.display = '';
     }
   }
 
@@ -919,11 +928,14 @@ tr.picked .checkbox::after { content: '✓'; font-weight: 800; }
   document.addEventListener('click', (e) => {
     if (!serverUp) return;  // standalone: clicks are no-ops
 
-    // recent chip → set_source
-    const chip = e.target.closest('.drop-recents .chip');
-    if (chip) {
-      const path = chip.getAttribute('data-path') || chip.textContent.replace(/^[↻\s]+/, '');
-      return post('set_source', { path });
+    // sample button → set_source (canonical demo path)
+    const sample = e.target.closest('.drop-sample');
+    if (sample) {
+      if (sample.getAttribute('data-sample') === 'dorian') {
+        return post('set_source', {
+          path: '/Users/dannymcmillan/Claude-Code-Projects-Restored/dorian-listings-tips/dorian-listings-tips.mp4'
+        });
+      }
     }
     // preset segment button
     const segBtn = e.target.closest('.seg button');
@@ -955,6 +967,16 @@ tr.picked .checkbox::after { content: '✓'; font-weight: 800; }
       const input = document.querySelector('.reply-input');
       const reply = input ? input.value : '';
       return post('lockin', { reply });
+    }
+  });
+
+  /* paste-path input → Enter to set_source --------------------- */
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' || !serverUp) return;
+    const inp = e.target.closest('.drop-paste input');
+    if (inp && inp.value.trim()) {
+      post('set_source', { path: inp.value.trim() });
+      inp.value = '';
     }
   });
 
