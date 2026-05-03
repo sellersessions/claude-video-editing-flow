@@ -193,9 +193,10 @@ body {
   border-radius: var(--radius-md);
 }
 .seg button {
-  font-size: 11px; font-weight: 600; padding: 6px 12px; border-radius: 6px;
-  color: var(--ink-muted); letter-spacing: .4px; text-transform: uppercase;
+  font-size: 10px; font-weight: 600; padding: 6px 8px; border-radius: 6px;
+  color: var(--ink-muted); letter-spacing: .3px; text-transform: uppercase;
   transition: all var(--transition); border: none; background: none; cursor: pointer;
+  white-space: nowrap;
 }
 .seg button:hover { color: var(--ink); background: rgba(117,62,247,.10); }
 .seg button.active { color: var(--ss-deep); background: var(--ss-gold); }
@@ -516,7 +517,7 @@ tr.picked .checkbox::after { content: '✓'; font-weight: 800; }
         </tr>
       </thead>
       <tbody>
-        <tr class="picked">
+        <tr class="picked" data-id="1">
           <td class="col-num">1</td>
           <td class="col-pick"><span class="checkbox"></span></td>
           <td><span class="tier t3">★★★</span></td>
@@ -524,7 +525,7 @@ tr.picked .checkbox::after { content: '✓'; font-weight: 800; }
           <td class="col-dur">7.1s</td>
           <td class="col-quote">"If you're cloning someone else's voice, it doesn't really matter as long as it sounds good, right?"</td>
         </tr>
-        <tr class="picked">
+        <tr class="picked" data-id="2">
           <td class="col-num">2</td>
           <td class="col-pick"><span class="checkbox"></span></td>
           <td><span class="tier t3">★★★</span></td>
@@ -532,7 +533,7 @@ tr.picked .checkbox::after { content: '✓'; font-weight: 800; }
           <td class="col-dur">12.4s</td>
           <td class="col-quote">"Claude can write the listings, score the candidates, and render the cut. You read text, you don't scrub."</td>
         </tr>
-        <tr>
+        <tr data-id="3">
           <td class="col-num">3</td>
           <td class="col-pick"><span class="checkbox"></span></td>
           <td><span class="tier t2">★★</span></td>
@@ -540,7 +541,7 @@ tr.picked .checkbox::after { content: '✓'; font-weight: 800; }
           <td class="col-dur">5.7s</td>
           <td class="col-quote">"And here's why that matters when you do this in volume."</td>
         </tr>
-        <tr class="picked">
+        <tr class="picked" data-id="4">
           <td class="col-num">4</td>
           <td class="col-pick"><span class="checkbox"></span></td>
           <td><span class="tier t3">★★★</span></td>
@@ -548,7 +549,7 @@ tr.picked .checkbox::after { content: '✓'; font-weight: 800; }
           <td class="col-dur">8.2s</td>
           <td class="col-quote">"So we run it through Scribe, score against the SOP, and Claude knows what to surface."</td>
         </tr>
-        <tr>
+        <tr data-id="5">
           <td class="col-num">5</td>
           <td class="col-pick"><span class="checkbox"></span></td>
           <td><span class="tier t2">★★</span></td>
@@ -556,7 +557,7 @@ tr.picked .checkbox::after { content: '✓'; font-weight: 800; }
           <td class="col-dur">9.3s</td>
           <td class="col-quote">"Most podcast tools can't do this. They auto-cut the whole clip and you lose editorial control."</td>
         </tr>
-        <tr class="picked">
+        <tr class="picked" data-id="6">
           <td class="col-num">6</td>
           <td class="col-pick"><span class="checkbox"></span></td>
           <td><span class="tier t3">★★★</span></td>
@@ -977,8 +978,10 @@ tr.picked .checkbox::after { content: '✓'; font-weight: 800; }
     // candidate row click → toggle_pick
     const row = e.target.closest('.cand-table tbody tr');
     if (row) {
+      row.classList.toggle('picked');
       const id = parseInt(row.getAttribute('data-id'), 10);
       if (!isNaN(id)) return post('toggle_pick', { id });
+      return;
     }
     // verdict lane click
     const lane = e.target.closest('.verdict-btn');
