@@ -21,7 +21,7 @@ RAW FOOTAGE  →  TRANSCRIBE  →  SCAN  →  CANDIDATES.MD  →  TICK  →  REN
 
 A segment qualifies for the sheet only if:
 
-1. **Word-boundary snappable** — start and end land on real word edges (auto-enforced from Scribe transcript).
+1. **Silence snappable** — within ±2.0s of each proposed bound there must be a real silence in the audio waveform (head ≥150ms, tail ≥250ms). Programmatically enforced at lockin via `ffmpeg silencedetect`; see Gate 1 below.
 2. **Duration 3–30s** — shorter = weaker, longer = subdivide into smaller candidates.
 3. **Contains at least one of:**
    - A self-contained thought that makes sense without the surrounding context
@@ -31,6 +31,27 @@ A segment qualifies for the sheet only if:
 5. **No mid-phrase audio edges** — never starts or ends on a word the speaker hasn't finished.
 
 Segments that fail any rule get dropped before the sheet is written.
+
+### Gate 1 — programmatic snap-to-silence (lockin.py)
+
+Whisper / Scribe `word.end` is the end of the phoneme, not where the audio actually goes silent. Cutting at word boundaries clips consonant tails and runs adjacent thoughts into each other (the "hands-off-UI / human-in-the-loop" failure on the 3 May Loom).
+
+`scripts/lockin.py` runs `ffmpeg silencedetect` on the source (cached in `<edit>/silences.json`), snaps every EDL range to the nearest qualifying silence, writes the snapped bounds back into the EDL, and **refuses to advance to render** if any cut is mid-word (no silence in window).
+
+Defaults — tunable via CLI:
+
+| Flag | Default | What it controls |
+|---|---|---|
+| `--head-pad` | `0.150` | Min silence before cut start to call it `clean` |
+| `--tail-pad` | `0.250` | Min silence after cut end to call it `clean` |
+| `--snap-window` | `2.0` | How far to search for a silence edge (seconds) |
+| `--noise-db` | `-32` | silencedetect noise floor (lower = more sensitive) |
+| `--accept-tight` | off | Render even when a cut is still mid-word (escape hatch) |
+
+Status taxonomy printed in the Gate 1 table:
+- ✓ **clean** — head ≥ pad AND tail ≥ pad
+- ⚠ **tight** — snapped to a silence but shorter than pad threshold (still better than no snap)
+- ✗ **mid-word** — no silence found within window, render refused unless `--accept-tight`
 
 ---
 

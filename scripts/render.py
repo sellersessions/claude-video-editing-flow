@@ -31,10 +31,14 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 try:
     from vef import state as _vef
 except ImportError:
     _vef = None
+from _boundary import slice_words
+
+STATUS_GLYPH = {"clean": "✓ clean", "tight": "⚠ tight", "mid_word": "✗ mid-word"}
 
 GRADES = {
     "neutral_punch": (
@@ -105,6 +109,93 @@ def probe_duration(path: Path) -> float:
         check=True, capture_output=True, text=True,
     )
     return float(res.stdout.strip())
+
+
+def _transcript_for(src: Path) -> dict | None:
+    """Find a Scribe transcript next to a source.
+
+    Checks the per-clip edit conventions plus loose sibling/_videos layouts so
+    Loom-style sources with transcripts in shared `_videos/transcripts/` or
+    `_loom_recordings/<id>/` folders get picked up too."""
+    stem = src.stem
+    candidates = [
+        src.parent / "edit" / "transcripts" / f"{stem}.json",
+        src.parent / stem / "edit" / "transcripts" / f"{stem}.json",
+        src.parent / "transcripts" / f"{stem}.json",
+        src.with_suffix(".json"),
+        src.parent / f"{stem}.scribe.json",
+        # _videos/transcripts/<id>-<title>.json next to the source folder
+        *((src.parent.parent / "_videos" / "transcripts").glob(f"{stem}*.json")
+          if (src.parent.parent / "_videos" / "transcripts").is_dir() else []),
+    ]
+    for c in candidates:
+        if c.exists():
+            try:
+                data = json.loads(c.read_text())
+                if isinstance(data, dict) and data.get("words"):
+                    return data
+            except (json.JSONDecodeError, OSError):
+                continue
+    return None
+
+
+def _print_verify(ranges, sources, src_override) -> None:
+    """Post-render terminal pullback — prose per cut + boundary status table.
+
+    Reads the Scribe transcript next to each source, slices words by the
+    snapped EDL ranges, prints them as plain sentences (no timestamps,
+    blank line between cuts). Then a status table so any tight cuts are
+    visible inline with the words.
+    """
+    print()
+    print("=== verify · words in the rendered cut ===")
+    print()
+
+    transcripts: dict[str, dict | None] = {}
+
+    def get_words(src: Path) -> list[dict]:
+        key = str(src.resolve())
+        if key not in transcripts:
+            transcripts[key] = _transcript_for(src)
+        tx = transcripts[key]
+        return tx.get("words", []) if tx else []
+
+    any_words = False
+    for i, r in enumerate(ranges, start=1):
+        if src_override:
+            src = src_override
+        else:
+            src = Path(sources[r["source"]])
+        words = get_words(src)
+        prose = slice_words(
+            words, float(r["start"]),
+            float(r.get("end", float(r["start"]) + float(r.get("duration_s", 0)))),
+        )
+        if prose:
+            any_words = True
+            print(prose)
+            print()
+
+    if not any_words:
+        print("(no Scribe transcript found next to the source — skipping prose)")
+        print("transcript path expected: <source>/edit/transcripts/<stem>.json")
+        print()
+
+    has_snap = any("snap" in r for r in ranges)
+    if not has_snap:
+        return
+
+    print("--- boundary status ---")
+    for i, r in enumerate(ranges, start=1):
+        snap = r.get("snap") or {}
+        status = snap.get("status", "—")
+        glyph = STATUS_GLYPH.get(status, status)
+        head_ms = int(snap.get("head_gap", 0) * 1000)
+        tail_ms = int(snap.get("tail_gap", 0) * 1000)
+        beat = (r.get("beat") or "—")[:32]
+        print(f"  [{i}] {beat:<32}  head {head_ms:>4}ms  "
+              f"tail {tail_ms:>4}ms  {glyph}")
+    print()
 
 
 def main() -> int:
@@ -193,6 +284,8 @@ def main() -> int:
     print(f"  output:   {args.out}")
     print(f"  duration: {dur:.2f}s")
     print(f"  size:     {size_mb:.1f} MB")
+
+    _print_verify(ranges, sources, args.src)
     if _vef is not None:
         _vef.merge(render={
             "progress": 1.0,

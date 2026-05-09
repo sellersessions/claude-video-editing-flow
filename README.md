@@ -32,6 +32,24 @@ This workflow splits the job the way it should be split. Claude transcribes, sco
 
 ---
 
+## Before you record (source material quality)
+
+This is an editor, not a magician. The pipeline can only cut the words you actually said: it can clean boundaries, snap to silence, and remove segments you reject, but it cannot rewrite a meandering take or dissolve filler words mid-sentence.
+
+If you record a tight, rehearsed walkthrough you will get tight, rehearsed cuts. If you record a stream-of-consciousness ramble with "so" and "okay" wedged between every clause, you will get a cleaner version of that same ramble, not a polished talk.
+
+**Practical rules for raw footage:**
+
+- **Loose script the beats.** Five bullets in a notes app is enough. Don't memorise lines: rehearse the order.
+- **Pause between sentences.** A real 300-400ms breath gives the snap logic somewhere clean to land. Speakers who chain sentences ("...the code so I run it so then...") leave nothing for the cutter to grab.
+- **Watch your filler words.** "So", "okay", "like", "you know" are the speech equivalent of search-engine stop words: removable in theory, impossible to surgically excise without leaving a glitch when you also chain words. Easier to not say them than to cut them out.
+- **Do a Loom-side cleanup pass first.** Loom's editor handles silence trimming and one-shot retakes well. Land the source in better shape before this pipeline touches it.
+- **Single take is fine, multi-take is fine, but commit to one.** This pipeline does not splice across multiple recordings of the same beat. Pick the take you'll work from.
+
+If your raw take is rough, this tool will surface honest output: cuts at sentence boundaries, no internal cleanup. That is intentional. The fix is upstream, not in the renderer.
+
+---
+
 ## Claude Video Editing Flow vs Traditional Editors
 
 | Dimension | DaVinci / Premiere | CapCut / Descript | Claude Video Editing Flow |

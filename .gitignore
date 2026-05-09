@@ -8,3 +8,9 @@ node_modules/
 __pycache__/
 .venv/
 .env
+
+# Local Netlify folder
+.netlify
+
+# Local prep-wizard state
+.vef/

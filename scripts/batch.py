@@ -33,6 +33,12 @@ from dataclasses import dataclass, asdict
 from pathlib import Path
 
 SCRIPT_DIR = Path(__file__).resolve().parent
+sys.path.insert(0, str(SCRIPT_DIR))
+from _boundary import (
+    DEFAULT_HEAD_PAD, DEFAULT_TAIL_PAD, DEFAULT_WINDOW, DEFAULT_NOISE_DB,
+    load_or_detect, snap_range,
+)
+
 PROJECT_ROOT = SCRIPT_DIR.parent
 VIDEO_USE_DIR = Path(os.environ.get(
     "VIDEO_USE_DIR",
@@ -162,51 +168,20 @@ def greedy_pick(ranked: list[Segment], target: float, tol: float,
     return sorted(picked, key=lambda s: s.start)
 
 
-def snap_to_silence(seg: Segment, scribe: dict,
-                    window: float = 1.5) -> Segment:
-    """Gate 1 — shift start/end to nearest silence edge within ±window."""
-    words = [w for w in scribe.get("words", []) if w.get("type") == "word"]
-
-    # Start: move forward to the next word onset if current start
-    # is inside a word; or pull back to previous silence if preceded by a
-    # trailing partial word within window.
-    new_start = seg.start
-    for i, w in enumerate(words):
-        if w["start"] > seg.start + window:
-            break
-        if w["end"] > seg.start > w["start"]:
-            # start is mid-word — snap to next word onset
-            if i + 1 < len(words):
-                new_start = words[i + 1]["start"]
-            break
-        if w["end"] <= seg.start and seg.start - w["end"] < 0.3:
-            # bleed-in risk from prior word tail — push start to next word
-            if i + 1 < len(words):
-                new_start = max(new_start, words[i + 1]["start"])
-
-    # End: prefer ending at a larger silence gap inside window
-    new_end = seg.end
-    best_gap = 0.0
-    for i, w in enumerate(words):
-        if w["end"] < seg.end - window:
-            continue
-        if w["end"] > seg.end + window:
-            break
-        next_start = words[i + 1]["start"] if i + 1 < len(words) else seg.end + 5
-        gap = next_start - w["end"]
-        # Prefer ending near original seg.end with a real silence after
-        if abs(w["end"] - seg.end) <= window and gap > best_gap and gap >= 0.15:
-            best_gap = gap
-            new_end = w["end"]
-
-    if new_end <= new_start + 0.5:
-        # Fall back to original bounds — snap failed
-        new_start, new_end = seg.start, seg.end
-
+def snap_to_silence_audio(seg: Segment, silences,
+                          head_pad: float = DEFAULT_HEAD_PAD,
+                          tail_pad: float = DEFAULT_TAIL_PAD,
+                          window: float = DEFAULT_WINDOW) -> Segment:
+    """Gate 1 — snap segment bounds to real silences in the audio waveform.
+    Replaces the old word-timestamp-based snap; ffmpeg silencedetect on the
+    source is more accurate than Whisper word.end (which is the phoneme end,
+    not the silence)."""
+    res = snap_range(seg.start, seg.end, silences,
+                     head_pad=head_pad, tail_pad=tail_pad, window=window)
     return Segment(
-        start=new_start, end=new_end,
+        start=res.new_start, end=res.new_end,
         words=seg.words, filler=seg.filler,
-        trailing_silence=best_gap or seg.trailing_silence,
+        trailing_silence=res.tail_gap or seg.trailing_silence,
         text=seg.text, speaker=seg.speaker,
     )
 
@@ -325,8 +300,21 @@ def process_clip(clip: Path, args) -> dict:
         result["status"] = "error:no_picks"
         return result
 
-    # Gate 1
-    snapped = [snap_to_silence(p, scribe) for p in picks]
+    # Gate 1 — audio-based snap
+    silences = load_or_detect(
+        clip,
+        cache=edit_dir / "silences.json",
+        noise_db=args.noise_db,
+        min_silence=0.10,
+    )
+    snapped = [
+        snap_to_silence_audio(
+            p, silences,
+            head_pad=args.head_pad, tail_pad=args.tail_pad,
+            window=args.snap_window,
+        )
+        for p in picks
+    ]
     # Gate 2
     final = ensure_closer(snapped)
     result["picks"] = [
@@ -389,6 +377,14 @@ def main() -> int:
                     default="horizontal")
     ap.add_argument("--min-seg", type=float, default=3)
     ap.add_argument("--max-seg", type=float, default=30)
+    ap.add_argument("--head-pad", type=float, default=DEFAULT_HEAD_PAD,
+                    help="min silence before cut start to call clean")
+    ap.add_argument("--tail-pad", type=float, default=DEFAULT_TAIL_PAD,
+                    help="min silence after cut end to call clean")
+    ap.add_argument("--snap-window", type=float, default=DEFAULT_WINDOW,
+                    help="how far to search for a silence edge (seconds)")
+    ap.add_argument("--noise-db", type=float, default=DEFAULT_NOISE_DB,
+                    help="silencedetect noise floor in dB (-32 default)")
     ap.add_argument("--skip-transcribe", action="store_true")
     ap.add_argument("--dry-run", action="store_true")
     args = ap.parse_args()
