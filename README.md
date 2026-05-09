@@ -15,9 +15,9 @@
 **Claude transcribes, scores and renders. You tick the candidates.**
 
 <!-- VIDEO -->
-https://github.com/user-attachments/assets/3aa780be-3ccb-44ca-9a2b-64533936935f
+<a href="https://pipeline-proof.netlify.app/explainers.html"><img src="assets/posters/walkthrough.jpg" alt="Claude Video Editing Flow walkthrough poster" width="100%"></a>
 
-> **Walkthrough video:** 65-second tour of the 5-stage pipeline. Full release: [v0.1-demo](https://github.com/sellersessions/claude-video-editing-flow/releases/tag/v0.1-demo).
+> **Walkthrough video:** 65-second tour of the 5-stage pipeline. ▶ [Watch on pipeline-proof](https://pipeline-proof.netlify.app/explainers.html). Full release: [v0.1-demo](https://github.com/sellersessions/claude-video-editing-flow/releases/tag/v0.1-demo).
 <!-- /VIDEO -->
 
 ---
